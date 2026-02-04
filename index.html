@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reordenador de PDF - Patrón Exacto</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #2c3e50, #4a6491);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .examples {
+            background: #f0f8ff;
+            border: 2px solid #4a90e2;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .example-cell {
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .example-label {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 25px 0;
+            background: #fafafa;
+            transition: all 0.3s;
+        }
+        
+        .upload-area.dragover {
+            border-color: #4a6491;
+            background: #f0f4f8;
+        }
+        
+        .upload-btn {
+            background: #4a6491;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .control-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .process-btn {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .process-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .download-btn {
+            background: #2c3e50;
+            color: white;
+        }
+        
+        .download-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .page-previews {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .page-thumb {
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .page-real {
+            background: white;
+            border: 2px solid #4a90e2;
+        }
+        
+        .page-blank {
+            background: repeating-linear-gradient(45deg, #f5f5f5, #f5f5f5 10px, #e8e8e8 10px, #e8e8e8 20px);
+            border: 2px dashed #999;
+            color: #666;
+            font-style: italic;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Reordenador de PDF - Patrón Exacto</h1>
+            <p>Para impresión de libros: 1,3,5,7,4,2,8,6 | 9,11,13,15,12,10,16,14</p>
+        </header>
+        
+        <div class="content">
+            <div class="examples">
+                <h3>📋 Ejemplos del Patrón:</h3>
+                
+                <div class="example-label">7 páginas:</div>
+                <div class="example-grid">
+                    <div class="example-cell">1</div>
+                    <div class="example-cell">3</div>
+                    <div class="example-cell">5</div>
+                    <div class="example-cell">7</div>
+                    <div class="example-cell">4</div>
+                    <div class="example-cell">2</div>
+                    <div class="example-cell" style="background:#f0f0f0">B</div>
+                    <div class="example-cell">6</div>
+                </div>
+                
+                <div class="example-label">10 páginas:</div>
+                <div class="example-grid">
+                    <div class="example-cell">1</div>
+                    <div class="example-cell">3</div>
+                    <div class="example-cell">5</div>
+                    <div class="example-cell">7</div>
+                    <div class="example-cell">4</div>
+                    <div class="example-cell">2</div>
+                    <div class="example-cell">8</div>
+                    <div class="example-cell">6</div>
+                    <div class="example-cell">9</div>
+                    <div class="example-cell" style="background:#f0f0f0">B</div>
+                    <div class="example-cell" style="background:#f0f0f0">B</div>
+                    <div class="example-cell" style="background:#f0f0f0">B</div>
+                    <div class="example-cell" style="background:#f0f0f0">B</div>
+                    <div class="example-cell">10</div>
+                </div>
+                
+                <div class="example-label">15 páginas:</div>
+                <div class="example-grid">
+                    <div class="example-cell">1</div>
+                    <div class="example-cell">3</div>
+                    <div class="example-cell">5</div>
+                    <div class="example-cell">7</div>
+                    <div class="example-cell">4</div>
+                    <div class="example-cell">2</div>
+                    <div class="example-cell">8</div>
+                    <div class="example-cell">6</div>
+                    <div class="example-cell">9</div>
+                    <div class="example-cell">11</div>
+                    <div class="example-cell">13</div>
+                    <div class="example-cell">15</div>
+                    <div class="example-cell">12</div>
+                    <div class="example-cell">10</div>
+                    <div class="example-cell">16</div>
+                    <div class="example-cell">14</div>
+                </div>
+                
+                <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                    <strong>Regla:</strong> Se eliminan solo si hay 4 o más páginas en blanco consecutivas al final.
+                </p>
+            </div>
+            
+            <div class="upload-area" id="uploadArea">
+                <div style="font-size: 48px; color: #4a6491; margin-bottom: 15px;">📄</div>
+                <p>Arrastra y suelta tu archivo PDF aquí</p>
+                <p>o</p>
+                <button class="upload-btn" id="fileInputBtn">
+                    📁 Seleccionar archivo PDF
+                </button>
+                <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn process-btn" id="processBtn" disabled>
+                    ⚙️ Procesar PDF
+                </button>
+                <button class="control-btn download-btn" id="downloadBtn" disabled>
+                    ⬇️ Descargar PDF Reordenado
+                </button>
+            </div>
+            
+            <div id="status" class="status">
+                Selecciona un archivo PDF para comenzar.
+            </div>
+            
+            <div id="previewSection" style="display: none;">
+                <h3>👁️ Vista previa del reordenamiento:</h3>
+                <div class="page-previews" id="pagePreviews"></div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Esta herramienta funciona completamente en tu navegador. Tus archivos no se suben a ningún servidor.</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    
+    <script>
+        let pdfDoc = null;
+        let reorderedPdfDoc = null;
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInputBtn = document.getElementById('fileInputBtn');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusDiv = document.getElementById('status');
+        const previewSection = document.getElementById('previewSection');
+        const pagePreviews = document.getElementById('pagePreviews');
+        
+        // Event listeners
+        fileInputBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect(e);
+            }
+        });
+        
+        processBtn.addEventListener('click', processPDF);
+        downloadBtn.addEventListener('click', downloadPDF);
+        
+        async function handleFileSelect(e) {
+            const file = fileInput.files[0];
+            if (!file || file.type !== 'application/pdf') {
+                showStatus('❌ Por favor, selecciona un archivo PDF válido.', 'error');
+                return;
+            }
+            
+            showStatus('⏳ Cargando PDF...');
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await window.PDFLib.PDFDocument.load(arrayBuffer);
+                const pageCount = pdfDoc.getPageCount();
+                
+                showStatus(`✅ PDF cargado correctamente. ${pageCount} páginas detectadas.`, 'success');
+                processBtn.disabled = false;
+                downloadBtn.disabled = true;
+                
+            } catch (error) {
+                showStatus('❌ Error al cargar el PDF: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        // PATRÓN EXACTO POR CICLOS
+        function generatePatternForCycle(cycleNumber, totalPages) {
+            const basePage = (cycleNumber * 8) + 1;
+            const cyclePattern = [
+                basePage + 0,  // 1
+                basePage + 2,  // 3
+                basePage + 4,  // 5
+                basePage + 6,  // 7
+                basePage + 3,  // 4
+                basePage + 1,  // 2
+                basePage + 7,  // 8
+                basePage + 5   // 6
+            ];
+            
+            // Reemplazar páginas que no existen con -1 (blanco)
+            return cyclePattern.map(page => page > totalPages ? -1 : page);
+        }
+        
+        // Genera el patrón completo
+        function generateExactPattern(totalPages) {
+            const pattern = [];
+            const cyclesNeeded = Math.ceil(totalPages / 8);
+            
+            // Generar cada ciclo
+            for (let cycle = 0; cycle < cyclesNeeded; cycle++) {
+                const cyclePattern = generatePatternForCycle(cycle, totalPages);
+                pattern.push(...cyclePattern);
+            }
+            
+            // ELIMINAR 4 O MÁS PÁGINAS EN BLANCO CONSECUTIVAS AL FINAL
+            return removeTrailingBlanks(pattern);
+        }
+        
+        // Elimina 4+ páginas en blanco consecutivas al final
+        function removeTrailingBlanks(pattern) {
+            let trailingBlanks = 0;
+            
+            // Contar desde el final
+            for (let i = pattern.length - 1; i >= 0; i--) {
+                if (pattern[i] === -1) {
+                    trailingBlanks++;
+                } else {
+                    break;
+                }
+            }
+            
+            // Si hay 4 o más blancos consecutivos al final, eliminarlos
+            if (trailingBlanks >= 4) {
+                return pattern.slice(0, pattern.length - trailingBlanks);
+            }
+            
+            return pattern;
+        }
+        
+        async function processPDF() {
+            if (!pdfDoc) return;
+            
+            showStatus('⏳ Procesando PDF...');
+            processBtn.disabled = true;
+            
+            try {
+                const totalPages = pdfDoc.getPageCount();
+                const pattern = generateExactPattern(totalPages);
+                
+                // Crear nuevo documento PDF
+                reorderedPdfDoc = await window.PDFLib.PDFDocument.create();
+                
+                // Contadores
+                let realPages = 0;
+                let blankPages = 0;
+                
+                // Procesar el patrón
+                for (let i = 0; i < pattern.length; i++) {
+                    const pageNumber = pattern[i];
+                    
+                    if (pageNumber === -1) {
+                        // Página en blanco
+                        reorderedPdfDoc.addPage([595, 842]); // Tamaño A4
+                        blankPages++;
+                    } else {
+                        // Página real (convertir a índice base 0)
+                        const pageIndex = pageNumber - 1;
+                        const [copiedPage] = await reorderedPdfDoc.copyPages(pdfDoc, [pageIndex]);
+                        reorderedPdfDoc.addPage(copiedPage);
+                        realPages++;
+                    }
+                }
+                
+                // Mostrar estadísticas
+                showStatus(
+                    `✅ PDF procesado correctamente.<br>` +
+                    `📄 Páginas originales: ${totalPages}<br>` +
+                    `📑 Páginas finales: ${pattern.length} (${realPages} reales + ${blankPages} en blanco)`,
+                    'success'
+                );
+                
+                downloadBtn.disabled = false;
+                showPreview(pattern, totalPages);
+                
+                // Mostrar en consola para depuración
+                console.log(`Patrón para ${totalPages} páginas:`);
+                console.log(pattern.map(p => p === -1 ? 'B' : p).join(','));
+                
+            } catch (error) {
+                showStatus('❌ Error al procesar el PDF: ' + error.message, 'error');
+                console.error(error);
+                processBtn.disabled = false;
+            }
+        }
+        
+        function showPreview(pattern, totalPages) {
+            previewSection.style.display = 'block';
+            pagePreviews.innerHTML = '';
+            
+            pattern.forEach((pageNum, index) => {
+                const div = document.createElement('div');
+                
+                if (pageNum === -1) {
+                    div.className = 'page-thumb page-blank';
+                    div.innerHTML = `<strong>Posición ${index + 1}</strong><br>Página en blanco`;
+                } else {
+                    div.className = 'page-thumb page-real';
+                    div.innerHTML = `<strong>Posición ${index + 1}</strong><br>Original: página ${pageNum}`;
+                }
+                
+                pagePreviews.appendChild(div);
+            });
+        }
+        
+        async function downloadPDF() {
+            if (!reorderedPdfDoc) return;
+            
+            showStatus('⏳ Generando PDF para descarga...');
+            
+            try {
+                const pdfBytes = await reorderedPdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `libro_reordenado_${new Date().getTime()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                URL.revokeObjectURL(url);
+                
+                showStatus('✅ PDF descargado correctamente. ¡Listo para imprimir!', 'success');
+                
+            } catch (error) {
+                showStatus('❌ Error al generar el PDF: ' + error.message, 'error');
+            }
+        }
+        
+        function showStatus(message, type = '') {
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        // Ejemplos de prueba
+        console.log("=== PRUEBAS DEL PATRÓN ===");
+        
+        function testPattern(pages) {
+            const pattern = generateExactPattern(pages);
+            console.log(`${pages} páginas: ${pattern.map(p => p === -1 ? 'B' : p).join(',')}`);
+        }
+        
+        testPattern(7);   // 1,3,5,7,4,2,B,6
+        testPattern(9);   // 1,3,5,7,4,2,8,6,9,B,B,B
+        testPattern(10);  // 1,3,5,7,4,2,8,6,9,B,B,B,B,10
+        testPattern(11);  // 1,3,5,7,4,2,8,6,9,11,B,B,B,B,10,B,B
+        testPattern(15);  // 1,3,5,7,4,2,8,6,9,11,13,15,12,10,16,14
+        testPattern(17);  // 1,3,5,7,4,2,8,6,9,11,13,15,12,10,16,14,17,B,B,B,B,B,B,B
+    </script>
+</body>
+</html>

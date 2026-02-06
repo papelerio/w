@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reordenador de PDF - Patrón Exacto</title>
+    <title>Reordenador de PDF - Nuevo Patrón 1-6-3-8-5-2-7-4</title>
     <style>
         * {
             margin: 0;
@@ -203,37 +203,39 @@
 <body>
     <div class="container">
         <header>
-            <h1>📚 Reordenador de PDF - Patrón Exacto</h1>
-            <p>Para impresión de libros: 1,3,5,7,4,2,8,6 | 9,11,13,15,12,10,16,14</p>
+            <h1>📚 Reordenador de PDF - Nuevo Patrón</h1>
+            <p>Patrón: 1-6-3-8-5-2-7-4 | 9-14-11-16-13-10-15-12</p>
         </header>
         
         <div class="content">
             <div class="examples">
-                <h3>📋 Ejemplos del Patrón:</h3>
+                <h3>📋 Ejemplos del Nuevo Patrón (1-6-3-8-5-2-7-4):</h3>
                 
                 <div class="example-label">7 páginas:</div>
                 <div class="example-grid">
                     <div class="example-cell">1</div>
-                    <div class="example-cell">3</div>
-                    <div class="example-cell">5</div>
-                    <div class="example-cell">7</div>
-                    <div class="example-cell">4</div>
-                    <div class="example-cell">2</div>
-                    <div class="example-cell" style="background:#f0f0f0">B</div>
                     <div class="example-cell">6</div>
+                    <div class="example-cell">3</div>
+                    <div class="example-cell">8</div>
+                    <div class="example-cell">5</div>
+                    <div class="example-cell">2</div>
+                    <div class="example-cell">7</div>
+                    <div class="example-cell" style="background:#f0f0f0">B</div>
                 </div>
                 
                 <div class="example-label">10 páginas:</div>
                 <div class="example-grid">
                     <div class="example-cell">1</div>
+                    <div class="example-cell">6</div>
                     <div class="example-cell">3</div>
+                    <div class="example-cell">8</div>
                     <div class="example-cell">5</div>
+                    <div class="example-cell">2</div>
                     <div class="example-cell">7</div>
                     <div class="example-cell">4</div>
-                    <div class="example-cell">2</div>
-                    <div class="example-cell">8</div>
-                    <div class="example-cell">6</div>
                     <div class="example-cell">9</div>
+                    <div class="example-cell">14</div>
+                    <div class="example-cell" style="background:#f0f0f0">B</div>
                     <div class="example-cell" style="background:#f0f0f0">B</div>
                     <div class="example-cell" style="background:#f0f0f0">B</div>
                     <div class="example-cell" style="background:#f0f0f0">B</div>
@@ -244,21 +246,21 @@
                 <div class="example-label">15 páginas:</div>
                 <div class="example-grid">
                     <div class="example-cell">1</div>
+                    <div class="example-cell">6</div>
                     <div class="example-cell">3</div>
+                    <div class="example-cell">8</div>
                     <div class="example-cell">5</div>
+                    <div class="example-cell">2</div>
                     <div class="example-cell">7</div>
                     <div class="example-cell">4</div>
-                    <div class="example-cell">2</div>
-                    <div class="example-cell">8</div>
-                    <div class="example-cell">6</div>
                     <div class="example-cell">9</div>
+                    <div class="example-cell">14</div>
                     <div class="example-cell">11</div>
+                    <div class="example-cell">16</div>
                     <div class="example-cell">13</div>
+                    <div class="example-cell">10</div>
                     <div class="example-cell">15</div>
                     <div class="example-cell">12</div>
-                    <div class="example-cell">10</div>
-                    <div class="example-cell">16</div>
-                    <div class="example-cell">14</div>
                 </div>
                 
                 <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
@@ -364,18 +366,19 @@
             }
         }
         
-        // PATRÓN EXACTO POR CICLOS
+        // NUEVO PATRÓN: 1-6-3-8-5-2-7-4
         function generatePatternForCycle(cycleNumber, totalPages) {
             const basePage = (cycleNumber * 8) + 1;
+            // Nuevo patrón: 1,6,3,8,5,2,7,4
             const cyclePattern = [
                 basePage + 0,  // 1
+                basePage + 5,  // 6
                 basePage + 2,  // 3
-                basePage + 4,  // 5
-                basePage + 6,  // 7
-                basePage + 3,  // 4
-                basePage + 1,  // 2
                 basePage + 7,  // 8
-                basePage + 5   // 6
+                basePage + 4,  // 5
+                basePage + 1,  // 2
+                basePage + 6,  // 7
+                basePage + 3   // 4
             ];
             
             // Reemplazar páginas que no existen con -1 (blanco)
@@ -464,7 +467,7 @@
                 showPreview(pattern, totalPages);
                 
                 // Mostrar en consola para depuración
-                console.log(`Patrón para ${totalPages} páginas:`);
+                console.log(`Nuevo patrón para ${totalPages} páginas:`);
                 console.log(pattern.map(p => p === -1 ? 'B' : p).join(','));
                 
             } catch (error) {
@@ -505,7 +508,7 @@
                 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `libro_reordenado_${new Date().getTime()}.pdf`;
+                a.download = `libro_reordenado_nuevo_patron_${new Date().getTime()}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -524,20 +527,24 @@
             statusDiv.className = `status ${type}`;
         }
         
-        // Ejemplos de prueba
-        console.log("=== PRUEBAS DEL PATRÓN ===");
+        // Ejemplos de prueba con el NUEVO PATRÓN
+        console.log("=== PRUEBAS DEL NUEVO PATRÓN (1-6-3-8-5-2-7-4) ===");
         
         function testPattern(pages) {
             const pattern = generateExactPattern(pages);
             console.log(`${pages} páginas: ${pattern.map(p => p === -1 ? 'B' : p).join(',')}`);
         }
         
-        testPattern(7);   // 1,3,5,7,4,2,B,6
-        testPattern(9);   // 1,3,5,7,4,2,8,6,9,B,B,B
-        testPattern(10);  // 1,3,5,7,4,2,8,6,9,B,B,B,B,10
-        testPattern(11);  // 1,3,5,7,4,2,8,6,9,11,B,B,B,B,10,B,B
-        testPattern(15);  // 1,3,5,7,4,2,8,6,9,11,13,15,12,10,16,14
-        testPattern(17);  // 1,3,5,7,4,2,8,6,9,11,13,15,12,10,16,14,17,B,B,B,B,B,B,B
+        // Pruebas con diferentes números de páginas
+        testPattern(7);   // 1,6,3,8,5,2,7,B
+        testPattern(9);   // 1,6,3,8,5,2,7,4,9,B,B,B,B,B,B,B
+        testPattern(10);  // 1,6,3,8,5,2,7,4,9,14,B,B,B,B,B,B
+        testPattern(11);  // 1,6,3,8,5,2,7,4,9,14,11,B,B,B,B,B
+        testPattern(12);  // 1,6,3,8,5,2,7,4,9,14,11,16,B,B,B,B
+        testPattern(13);  // 1,6,3,8,5,2,7,4,9,14,11,16,13,B,B,B
+        testPattern(14);  // 1,6,3,8,5,2,7,4,9,14,11,16,13,10,B,B
+        testPattern(15);  // 1,6,3,8,5,2,7,4,9,14,11,16,13,10,15,12
+        testPattern(17);  // 1,6,3,8,5,2,7,4,9,14,11,16,13,10,15,12,17,B,B,B,B,B,B,B
     </script>
 </body>
 </html>

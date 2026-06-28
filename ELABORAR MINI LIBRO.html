@@ -309,8 +309,8 @@
                 <button class="mode-btn mode-2" id="mode2Btn" data-mode="2">
                     <span class="mode-icon">📔</span>
                     <span>Modo 2 Hojas</span>
-                    <span class="mode-pattern" title="1-2-4-3 (3 y 4 rotadas)">1-2-4-3</span>
-                    <span class="rotation-indicator">🔄 3-4 rotadas</span>
+                    <span class="mode-pattern">Tabla 2×N</span>
+                    <span class="rotation-indicator">🔄 filas pares rotan</span>
                 </button>
                 <button class="mode-btn mode-9" id="mode9Btn" data-mode="9">
                     <span class="mode-icon">📕</span>
@@ -369,7 +369,7 @@
         // Patrones de organización
         const PATTERNS = {
             4: [1, 6, 3, 8, 5, 2, 7, 4],                    // Modo 4 hojas
-            2: [1, 2, 4, 3],                                  // Modo 2 hojas (con rotación especial)
+            2: [1, 4, 2, 3],                                  // Modo 2 hojas (usado por generatePatternMode2 - ver función)
             9: [1, 3, 5, 7, 9, 11, 13, 15, 17, 6, 4, 2, 12, 10, 8, 18, 16, 14], // Modo 9 hojas
             16: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31,
                 8, 6, 4, 2, 16, 14, 12, 10, 24, 22, 20, 18, 32, 30, 28, 26]    // Modo 16 hojas
@@ -452,7 +452,10 @@
 
             // Resetear si hay un PDF cargado
             if (pdfDoc) {
-                showStatus(`✅ Modo ${mode} hojas seleccionado. Listo para procesar.`, 'success');
+                const msg = mode === '2'
+                    ? `✅ Modo 2 Hojas (tabla 2×N) seleccionado. El PDF se autoajustará al múltiplo de 4 más cercano.`
+                    : `✅ Modo ${mode} hojas seleccionado. Listo para procesar.`;
+                showStatus(msg, 'success');
             }
         }
 
@@ -477,7 +480,11 @@
                 pdfDoc = await window.PDFLib.PDFDocument.load(arrayBuffer);
                 const pageCount = pdfDoc.getPageCount();
 
-                showStatus(`✅ PDF cargado: ${pageCount} páginas. Modo ${currentMode} hojas seleccionado.`, 'success');
+                const adjusted = Math.ceil(pageCount / 4) * 4;
+                const extraMsg = currentMode === '2' && adjusted > pageCount
+                    ? ` (se añadirán ${adjusted - pageCount} páginas en blanco para llegar a ${adjusted})`
+                    : '';
+                showStatus(`✅ PDF cargado: ${pageCount} páginas. Modo ${currentMode} hojas seleccionado.${extraMsg}`, 'success');
                 elements.processBtn.disabled = false;
 
             } catch (error) {
@@ -487,11 +494,13 @@
         }
 
         function generatePattern(totalPages, mode) {
+            if (mode === '2') {
+                return generatePatternMode2(totalPages);
+            }
             const basePattern = PATTERNS[mode];
             const patternLength = basePattern.length;
             const cyclesNeeded = Math.ceil(totalPages / patternLength);
 
-            // Generar patrón completo
             let fullPattern = [];
             for (let cycle = 0; cycle < cyclesNeeded; cycle++) {
                 const offset = cycle * patternLength;
@@ -502,7 +511,6 @@
                 fullPattern.push(...cyclePattern);
             }
 
-            // Eliminar páginas en blanco del final
             while (fullPattern.length > 0 && fullPattern[fullPattern.length - 1] === -1) {
                 fullPattern.pop();
             }
@@ -510,8 +518,35 @@
             return fullPattern;
         }
 
+        function generatePatternMode2(totalPages) {
+            const adjustedPages = Math.ceil(totalPages / 4) * 4;
+            const rows = adjustedPages / 2;
+
+            const col1 = [];
+            const col2 = [];
+            for (let i = 0; i < rows; i++) {
+                col1.push(i + 1);
+                col2.push(adjustedPages - i);
+            }
+
+            const pattern = [];
+            for (let row = 0; row < rows; row++) {
+                const left = col1[row];
+                const right = col2[row];
+                pattern.push(left <= totalPages ? left : -1);
+                pattern.push(right <= totalPages ? right : -1);
+            }
+
+            return pattern;
+        }
+
         function shouldRotatePage(position, mode) {
-            // Verificar si hay configuración de rotación para este modo
+            if (mode === '2') {
+                // Filas pares (2, 4, 6...) se rotan 180° - cada fila ocupa 2 posiciones
+                const rowIndex = Math.ceil(position / 2);
+                return rowIndex % 2 === 0;
+            }
+
             if (!ROTATION_CONFIG[mode]) {
                 return false;
             }
@@ -520,10 +555,8 @@
             const basePattern = PATTERNS[mode];
             const patternLength = basePattern.length;
 
-            // Calcular la posición dentro del patrón actual (1-based)
             const positionInPattern = ((position - 1) % patternLength) + 1;
 
-            // Verificar si esta posición debe rotarse
             return config.positionsToRotate.includes(positionInPattern);
         }
 

@@ -165,6 +165,17 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
+        .page-placeholder {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #c0c0c0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            user-select: none;
+            transition: color 0.2s;
+        }
+        .page-container:hover .page-placeholder {
+            color: #4facfe;
+        }
         .page-number {
             position: absolute;
             bottom: 8px;
@@ -186,75 +197,114 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.92);
             z-index: 2000;
             display: none;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 0;
         }
 
         .preview-modal.active { display: flex; }
 
         .preview-container {
-            position: relative;
-            max-width: 90vw;
-            max-height: 90vh;
-            background: white;
-            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            max-width: 96vw;
+            max-height: 96vh;
+            background: #1a1a1a;
+            border-radius: 16px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+            animation: previewSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             overflow: hidden;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
-            animation: previewSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        .preview-image {
-            width: 100%;
-            height: auto;
-            max-height: 80vh;
-            object-fit: contain;
-            display: block;
+        .preview-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: #222;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
         }
 
         .preview-header {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(79, 172, 254, 0.95);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 1.2em;
+            color: #ccc;
+            font-size: 0.95em;
             font-weight: 600;
-            z-index: 10;
-            backdrop-filter: blur(20px);
         }
 
-        .preview-nav, .preview-close {
-            position: absolute;
-            background: rgba(79, 172, 254, 0.9);
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+        .preview-topbar-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .preview-topbar-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5em;
+            font-size: 1.2em;
             cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 10;
-            backdrop-filter: blur(20px);
+            transition: all 0.2s ease;
+            color: white;
+            border: none;
+            background: #3a3a3a;
+        }
+        .preview-topbar-btn:hover {
+            background: #555;
+            transform: scale(1.05);
+        }
+        .preview-topbar-btn.close {
+            background: #c0392b;
+        }
+        .preview-topbar-btn.close:hover {
+            background: #e74c3c;
         }
 
-        .preview-nav:hover, .preview-close:hover {
-            background: rgba(0, 242, 254, 0.95);
-            transform: scale(1.1);
+        .preview-body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 20px;
+            gap: 16px;
+            min-height: 0;
         }
 
-        .preview-nav.prev { left: 20px; top: 50%; transform: translateY(-50%); }
-        .preview-nav.next { right: 20px; top: 50%; transform: translateY(-50%); }
-        .preview-close { top: 20px; right: 20px; background: rgba(220, 53, 69, 0.95); }
+        .preview-image {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            display: block;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .preview-nav {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            flex-shrink: 0;
+        }
+        .preview-nav:hover {
+            background: rgba(79, 172, 254, 0.6);
+            border-color: rgba(79, 172, 254, 0.4);
+            transform: scale(1.08);
+        }
 
         .context-menu {
             position: fixed;
@@ -390,18 +440,25 @@
     <!-- VISTA PREVIA -->
     <div class="preview-modal" id="previewModal">
         <div class="preview-container">
-            <div class="preview-header" id="previewHeader">Página 1</div>
-            <img class="preview-image" id="previewImage" alt="Vista previa">
-            <div class="preview-nav prev" id="prevBtn">‹</div>
-            <div class="preview-nav next" id="nextBtn">›</div>
-            <div class="preview-close" id="closePreview">✕</div>
+            <div class="preview-topbar">
+                <span class="preview-header" id="previewHeader">Página 1</span>
+                <div class="preview-topbar-actions">
+                    <button class="preview-topbar-btn" id="previewDownload" title="Descargar imagen">⬇️</button>
+                    <button class="preview-topbar-btn close" id="closePreview" title="Cerrar">✕</button>
+                </div>
+            </div>
+            <div class="preview-body">
+                <div class="preview-nav" id="prevBtn" title="Anterior">‹</div>
+                <img class="preview-image" id="previewImage" alt="Vista previa">
+                <div class="preview-nav" id="nextBtn" title="Siguiente">›</div>
+            </div>
         </div>
     </div>
 
     <!-- MENÚ CONTEXTUAL -->
     <div class="context-menu" id="contextMenu">
         <div class="context-menu-item" id="copyImage">📋 Copiar imagen (SINGLE)</div>
-        <div class="context-menu-item" id="copyImageSmart">🧠 Copiar imagen (SMART)</div>
+        <div class="context-menu-item" id="copyImageSmart">🧠 Copiar imagen (actual)</div>
         <div class="context-menu-item" id="downloadImage">⬇️ Descargar imagen</div>
         <div class="context-menu-item" id="copyAll">📚 Copiar todas las páginas</div>
         <div class="context-menu-item" id="resolutionInfoMenu">ℹ️ Resolución: <span id="currentResMenu"></span></div>
@@ -414,13 +471,17 @@
         class PDFOptimizedViewer {
             constructor() {
                 this.pdfDoc = null;
-                this.canvases = [];
-                this.thumbnails = [];
                 this.currentPreviewIndex = 0;
                 this.thumbnailSize = 160;
                 this.resolutionScale = 2.5;
-                this.previewModal = null;
-                
+                this.numPages = 0;
+                this.selectedIndex = null;
+                this._thumbnailCache = [];
+                this._previewCache = [];
+                this._observer = null;
+                this._renderQueue = [];
+                this._rendering = false;
+
                 this.init();
             }
 
@@ -429,6 +490,23 @@
                 this.setupThumbnailControl();
                 this.setupResolutionControl();
                 this.setupPreviewModal();
+                this.setupIntersectionObserver();
+            }
+
+            setupIntersectionObserver() {
+                this._observer = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting) {
+                            const index = parseInt(entry.target.dataset.index);
+                            if (!this._thumbnailCache[index]) {
+                                this._thumbnailCache[index] = true; // marca como encolado
+                                this._renderQueue.push(index);
+                                this._processQueue();
+                            }
+                            this._observer.unobserve(entry.target);
+                        }
+                    }
+                }, { rootMargin: '100px' });
             }
 
             setupResolutionControl() {
@@ -439,14 +517,15 @@
                 select.addEventListener('change', (e) => {
                     this.resolutionScale = parseFloat(e.target.value);
                     const option = e.target.options[e.target.selectedIndex];
-                    
                     info.textContent = option.textContent;
                     menuInfo.textContent = option.textContent;
-                    
+                    if (this.previewModal && this.previewModal.classList.contains('active')) {
+                        document.getElementById('previewHeader').textContent =
+                            `Página ${this.currentPreviewIndex + 1} (${this.resolutionScale}x)`;
+                    }
                     this.showNotification(`🎛️ Resolución cambiada a: ${option.textContent}`);
                 });
 
-                // Inicializar info
                 const initialOption = select.options[select.selectedIndex];
                 info.textContent = initialOption.textContent;
                 menuInfo.textContent = initialOption.textContent;
@@ -478,6 +557,10 @@
                 document.addEventListener('click', () => {
                     document.getElementById('contextMenu').style.display = 'none';
                 });
+
+                document.getElementById('previewDownload').addEventListener('click', async () => {
+                    await this.downloadImage();
+                });
             }
 
             setupPreviewModal() {
@@ -500,7 +583,7 @@
 
                 document.getElementById('previewImage').addEventListener('contextmenu', (e) => {
                     e.preventDefault();
-                    this.selectedCanvas = this.canvases[this.currentPreviewIndex];
+                    this.selectedIndex = this.currentPreviewIndex;
                     this.showContextMenu(e);
                 });
             }
@@ -524,24 +607,26 @@
                 try {
                     loading.style.display = 'block';
                     pagesContainer.innerHTML = '';
-                    this.canvases = [];
-                    this.thumbnails = [];
+                    this._thumbnailCache = [];
+                    this._previewCache = [];
+                    this.selectedIndex = null;
                     statusMessage.style.display = 'none';
 
                     const arrayBuffer = await file.arrayBuffer();
                     this.pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    this.numPages = this.pdfDoc.numPages;
 
                     document.getElementById('pageInfo').textContent = `PDF cargado: ${file.name}`;
-                    document.getElementById('totalPages').textContent = `${this.pdfDoc.numPages} páginas`;
+                    document.getElementById('totalPages').textContent = `${this.numPages} páginas`;
 
-                    for (let i = 1; i <= this.pdfDoc.numPages; i++) {
-                        await this.renderThumbnail(i);
+                    for (let i = 0; i < this.numPages; i++) {
+                        this.createPlaceholder(i);
                     }
 
                     this.updateThumbnailSizes();
                     loading.style.display = 'none';
                     statusMessage.style.display = 'block';
-                    statusMessage.innerHTML = `✅ ${this.pdfDoc.numPages} páginas listas en ${this.resolutionScale}x`;
+                    statusMessage.innerHTML = `✅ ${this.numPages} páginas cargadas. Sin renderizado — haz clic para previsualizar.`;
                     statusMessage.style.background = '#d4edda';
                     statusMessage.style.color = '#155724';
 
@@ -555,97 +640,148 @@
                 }
             }
 
-            async renderThumbnail(pageNum) {
-                const page = await this.pdfDoc.getPage(pageNum);
-                
-                // 1. THUMBNAIL PEQUEÑO
-                const thumbnailScale = 0.7;
-                const thumbnailViewport = page.getViewport({ scale: thumbnailScale });
-                const thumbnailCanvas = document.createElement('canvas');
-                thumbnailCanvas.width = thumbnailViewport.width;
-                thumbnailCanvas.height = thumbnailViewport.height;
-                
-                await page.render({
-                    canvasContext: thumbnailCanvas.getContext('2d'),
-                    viewport: thumbnailViewport
-                }).promise;
+            createPlaceholder(index) {
+                const pageNum = index + 1;
+                const pagesContainer = document.getElementById('pagesContainer');
 
-                // 2. VISTA PREVIA MEDIA
-                const previewScale = 1.8;
-                const previewViewport = page.getViewport({ scale: previewScale });
-                const previewCanvas = document.createElement('canvas');
-                previewCanvas.width = previewViewport.width;
-                previewCanvas.height = previewViewport.height;
-                
-                await page.render({
-                    canvasContext: previewCanvas.getContext('2d'),
-                    viewport: previewViewport
-                }).promise;
-
-                // 3. CANVAS OPTIMIZADO (solo resoluciones útiles)
-                const optimizedCanvas = document.createElement('canvas');
-                optimizedCanvas.dataset.pageNum = pageNum;
-                
-                const optimizedViewport = page.getViewport({ scale: this.resolutionScale });
-                optimizedCanvas.width = optimizedViewport.width;
-                optimizedCanvas.height = optimizedViewport.height;
-                
-                await page.render({
-                    canvasContext: optimizedCanvas.getContext('2d'),
-                    viewport: optimizedViewport
-                }).promise;
-
-                // Crear DOM
                 const pageContainer = document.createElement('div');
                 pageContainer.className = 'page-container';
                 pageContainer.dataset.pageNum = pageNum;
+                pageContainer.dataset.index = index;
 
                 const thumbnailWrapper = document.createElement('div');
                 thumbnailWrapper.className = 'thumbnail-wrapper';
 
-                const thumbnailImg = document.createElement('img');
-                thumbnailImg.className = 'page-canvas';
-                thumbnailImg.src = thumbnailCanvas.toDataURL('image/png');
+                const placeholder = document.createElement('div');
+                placeholder.className = 'page-placeholder';
+                placeholder.textContent = pageNum;
 
                 const pageNumber = document.createElement('div');
                 pageNumber.className = 'page-number';
                 pageNumber.textContent = `P${pageNum}`;
 
-                thumbnailWrapper.appendChild(thumbnailImg);
+                thumbnailWrapper.appendChild(placeholder);
                 pageContainer.appendChild(thumbnailWrapper);
                 pageContainer.appendChild(pageNumber);
-                document.getElementById('pagesContainer').appendChild(pageContainer);
+                pagesContainer.appendChild(pageContainer);
 
-                this.thumbnails.push({ 
-                    element: thumbnailImg, 
-                    container: pageContainer,
-                    previewData: previewCanvas.toDataURL('image/png')
-                });
-                this.canvases.push(optimizedCanvas);
-
-                this.setupThumbnailEvents(thumbnailImg, pageContainer, pageNum - 1);
-            }
-
-            setupThumbnailEvents(thumbnailImg, pageContainer, index) {
-                thumbnailImg.addEventListener('click', () => this.openPreview(index));
-                thumbnailImg.addEventListener('contextmenu', (e) => {
+                pageContainer.addEventListener('click', () => this.openPreview(index));
+                pageContainer.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
-                    this.selectedCanvas = this.canvases[index];
+                    this.selectedIndex = index;
                     this.showContextMenu(e);
                 });
+
+                this._observer.observe(pageContainer);
+                this._thumbnailCache[index] = null;
+                this._previewCache[index] = null;
             }
 
-            /* VISTA PREVIA */
-            openPreview(index) {
+            _processQueue() {
+                if (this._rendering || this._renderQueue.length === 0) return;
+                this._rendering = true;
+                const index = this._renderQueue.shift();
+                this._renderSingleThumbnail(index).finally(() => {
+                    this._rendering = false;
+                    this._processQueue();
+                });
+            }
+
+            async _renderSingleThumbnail(index) {
+                if (this._thumbnailCache[index] && this._thumbnailCache[index] !== true) return;
+                try {
+                    const page = await this.pdfDoc.getPage(index + 1);
+                    const scale = 0.15;
+                    const viewport = page.getViewport({ scale });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({
+                        canvasContext: canvas.getContext('2d'),
+                        viewport
+                    }).promise;
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+                    this._thumbnailCache[index] = dataUrl;
+
+                    const container = document.querySelector(`.page-container[data-index="${index}"]`);
+                    if (container) {
+                        const wrapper = container.querySelector('.thumbnail-wrapper');
+                        const old = wrapper.querySelector('.page-placeholder');
+                        if (old) old.remove();
+                        const img = document.createElement('img');
+                        img.className = 'page-canvas';
+                        img.src = dataUrl;
+                        wrapper.appendChild(img);
+                    }
+                } catch (e) {
+                    delete this._thumbnailCache[index];
+                }
+            }
+
+            async renderThumbnailLazy(index) {
+                // Forzar render inmediato (usado en openPreview para priorizar)
+                if (this._thumbnailCache[index] && this._thumbnailCache[index] !== true) return;
+                const idx = this._renderQueue.indexOf(index);
+                if (idx !== -1) this._renderQueue.splice(idx, 1);
+                await this._renderSingleThumbnail(index);
+            }
+
+            async renderPreview(index) {
+                if (this._previewCache[index]) return this._previewCache[index];
+
+                const page = await this.pdfDoc.getPage(index + 1);
+                const scale = 1.5;
+                const viewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({
+                    canvasContext: canvas.getContext('2d'),
+                    viewport
+                }).promise;
+
+                const dataUrl = canvas.toDataURL('image/png');
+                this._previewCache[index] = dataUrl;
+                return dataUrl;
+            }
+
+            async renderHighRes(index) {
+                const scale = this.resolutionScale;
+                const page = await this.pdfDoc.getPage(index + 1);
+                const viewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.dataset.pageNum = index + 1;
+
+                await page.render({
+                    canvasContext: canvas.getContext('2d'),
+                    viewport
+                }).promise;
+
+                return canvas;
+            }
+
+            async openPreview(index) {
+                if (index < 0 || index >= this.numPages) return;
                 this.currentPreviewIndex = index;
-                const previewData = this.thumbnails[index].previewData;
-                const pageNum = index + 1;
-                
-                document.getElementById('previewImage').src = previewData;
-                document.getElementById('previewHeader').textContent = `Página ${pageNum} (${this.resolutionScale}x)`;
-                
+                this.selectedIndex = index;
+
+                this.renderThumbnailLazy(index);
+
+                const previewImg = document.getElementById('previewImage');
+                previewImg.src = '';
+                document.getElementById('previewHeader').textContent = `Cargando página ${index + 1}...`;
                 this.previewModal.classList.add('active');
                 document.body.style.overflow = 'hidden';
+
+                const data = await this.renderPreview(index);
+                previewImg.src = data;
+                document.getElementById('previewHeader').textContent =
+                    `Página ${index + 1} (${this.resolutionScale}x)`;
             }
 
             closePreview() {
@@ -653,15 +789,20 @@
                 document.body.style.overflow = 'auto';
             }
 
-            prevPage() { if (this.currentPreviewIndex > 0) this.openPreview(this.currentPreviewIndex - 1); }
-            nextPage() { if (this.currentPreviewIndex < this.thumbnails.length - 1) this.openPreview(this.currentPreviewIndex + 1); }
+            async prevPage() {
+                await this.openPreview(this.currentPreviewIndex - 1);
+            }
+
+            async nextPage() {
+                await this.openPreview(this.currentPreviewIndex + 1);
+            }
 
             updateThumbnailSizes() {
                 const containers = document.querySelectorAll('.page-container');
                 const grid = document.getElementById('pagesContainer');
                 const newMinMax = Math.max(120, this.thumbnailSize - 20);
                 grid.style.gridTemplateColumns = `repeat(auto-fill, minmax(${newMinMax}px, 1fr))`;
-                
+
                 containers.forEach(container => {
                     container.style.width = `${this.thumbnailSize}px`;
                     container.style.height = `${this.thumbnailSize}px`;
@@ -674,9 +815,13 @@
                 contextMenu.style.left = `${e.clientX}px`;
                 contextMenu.style.top = `${e.clientY}px`;
 
+                const select = document.getElementById('resolutionMode');
+                const option = select.options[select.selectedIndex];
+                document.getElementById('currentResMenu').textContent = option.textContent;
+
                 const menuHeight = contextMenu.offsetHeight;
                 const menuWidth = contextMenu.offsetWidth;
-                
+
                 if (e.clientY + menuHeight > window.innerHeight) {
                     contextMenu.style.top = `${e.clientY - menuHeight}px`;
                 }
@@ -685,40 +830,25 @@
                 }
             }
 
-            /* FUNCIONES DE COPIA */
-            async copyImageSmart() {
-                if (!this.canvases.length || !this.selectedCanvas) return;
-                
-                const blobs = [];
-                for (let i = 0; i < this.canvases.length; i++) {
-                    const blob = await this.canvasToBlob(this.canvases[i]);
-                    blobs.push(blob);
-                }
-                
-                const selectedIndex = parseInt(this.selectedCanvas.dataset.pageNum) - 1;
-                const selectedBlob = blobs.splice(selectedIndex, 1)[0];
-                blobs.push(selectedBlob);
-                
-                await this.copyBlobsToClipboard(blobs);
-                this.showNotification(`✅ SMART COPY ${this.resolutionScale}x: Página ${this.selectedCanvas.dataset.pageNum}`);
-            }
-
             async copySingleImage() {
-                if (!this.selectedCanvas) return;
-                const blob = await this.canvasToBlob(this.selectedCanvas);
+                if (this.selectedIndex === null) return;
+                const canvas = await this.renderHighRes(this.selectedIndex);
+                const blob = await this.canvasToBlob(canvas);
                 await this.copyBlobsToClipboard([blob]);
-                this.showNotification(`✅ Copia ${this.resolutionScale}x: Página ${this.selectedCanvas.dataset.pageNum}`);
+                this.showNotification(`✅ Copia ${this.resolutionScale}x: Página ${this.selectedIndex + 1}`);
             }
 
             async copyAllPages() {
-                if (!this.canvases.length) return;
+                if (!this.numPages) return;
+                this.showNotification(`⏳ Renderizando ${this.numPages} páginas una por una...`);
                 const blobs = [];
-                for (const canvas of this.canvases) {
+                for (let i = 0; i < this.numPages; i++) {
+                    const canvas = await this.renderHighRes(i);
                     const blob = await this.canvasToBlob(canvas);
                     blobs.push(blob);
                 }
                 await this.copyBlobsToClipboard(blobs);
-                this.showNotification(`✅ ${this.canvases.length} páginas copiadas (${this.resolutionScale}x)`);
+                this.showNotification(`✅ ${this.numPages} páginas copiadas (${this.resolutionScale}x)`);
             }
 
             canvasToBlob(canvas) {
@@ -738,16 +868,18 @@
                     }
                 } catch (error) {
                     console.error('Error copying:', error);
-                    this.downloadCanvas(this.selectedCanvas);
-                    this.showNotification('📥 Imagen descargada (fallback)');
+                    this.showNotification('📥 No se pudo copiar, intenta descargar');
                 }
             }
 
-            downloadCanvas(canvas) {
+            async downloadImage() {
+                if (this.selectedIndex === null) return;
+                const canvas = await this.renderHighRes(this.selectedIndex);
                 const link = document.createElement('a');
-                link.download = `pagina-${canvas.dataset.pageNum}_HD${this.resolutionScale}x.png`;
+                link.download = `pagina-${this.selectedIndex + 1}_${this.resolutionScale}x.png`;
                 link.href = canvas.toDataURL('image/png', 1.0);
                 link.click();
+                this.showNotification(`✅ Descargada página ${this.selectedIndex + 1} (${this.resolutionScale}x)`);
             }
 
             showNotification(message) {
@@ -766,22 +898,20 @@
             }
         }
 
-        // Inicializar
         const viewer = new PDFOptimizedViewer();
 
-        // Event listeners menú contextual
         document.getElementById('copyImage').addEventListener('click', async () => {
             await viewer.copySingleImage();
             document.getElementById('contextMenu').style.display = 'none';
         });
 
         document.getElementById('copyImageSmart').addEventListener('click', async () => {
-            await viewer.copyImageSmart();
+            await viewer.copySingleImage();
             document.getElementById('contextMenu').style.display = 'none';
         });
 
-        document.getElementById('downloadImage').addEventListener('click', () => {
-            if (viewer.selectedCanvas) viewer.downloadCanvas(viewer.selectedCanvas);
+        document.getElementById('downloadImage').addEventListener('click', async () => {
+            await viewer.downloadImage();
             document.getElementById('contextMenu').style.display = 'none';
         });
 

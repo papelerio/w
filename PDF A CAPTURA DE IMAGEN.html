@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer - Resoluciones OPTIMIZADAS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+
+        /* 🚀 CONTROL DE RESOLUCIÓN OPTIMIZADO */
+        .resolution-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 12px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            margin-top: 15px;
+        }
+
+        .resolution-control label {
+            font-size: 1em;
+            font-weight: 600;
+            color: white;
+        }
+
+        .resolution-select {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            background: white;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .resolution-select:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .resolution-info {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        /* CONTROLES */
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .thumbnail-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .thumbnail-size {
+            width: 80px;
+            padding: 4px 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        /* THUMBNAILS Y VISTA PREVIA (mismos estilos) */
+        .pages-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 18px;
+            padding: 30px;
+            background: #f8f9fa;
+            max-height: 75vh;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+
+        .page-container {
+            position: relative;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            aspect-ratio: 1/1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-container:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .page-container.selected {
+            border: 3px solid #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.4), 0 12px 35px rgba(79, 172, 254, 0.2);
+            transform: translateY(-8px) scale(1.05);
+        }
+
+        .thumbnail-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+        }
+
+        .page-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(79, 172, 254, 0.95);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .preview-modal.active { display: flex; }
+
+        .preview-container {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            animation: previewSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .preview-image {
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+            object-fit: contain;
+            display: block;
+        }
+
+        .preview-header {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(79, 172, 254, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1.2em;
+            font-weight: 600;
+            z-index: 10;
+            backdrop-filter: blur(20px);
+        }
+
+        .preview-nav, .preview-close {
+            position: absolute;
+            background: rgba(79, 172, 254, 0.9);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+            backdrop-filter: blur(20px);
+        }
+
+        .preview-nav:hover, .preview-close:hover {
+            background: rgba(0, 242, 254, 0.95);
+            transform: scale(1.1);
+        }
+
+        .preview-nav.prev { left: 20px; top: 50%; transform: translateY(-50%); }
+        .preview-nav.next { right: 20px; top: 50%; transform: translateY(-50%); }
+        .preview-close { top: 20px; right: 20px; background: rgba(220, 53, 69, 0.95); }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            z-index: 3000;
+            display: none;
+            min-width: 220px;
+            padding: 8px 0;
+        }
+
+        .context-menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .context-menu-item:last-child { border-bottom: none; }
+        .context-menu-item:hover {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.3);
+            z-index: 4000;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .upload-area {
+            padding: 40px;
+            text-align: center;
+            border-bottom: 3px solid #f0f0f0;
+            background: #fafafa;
+        }
+
+        .upload-zone {
+            border: 3px dashed #4facfe;
+            border-radius: 15px;
+            padding: 40px;
+            margin: 20px 0;
+            background: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #00f2fe;
+            background: #e3f2fd;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 172, 254, 0.2);
+        }
+
+        .upload-icon { font-size: 4em; color: #4facfe; margin-bottom: 20px; }
+        .upload-text { font-size: 1.3em; color: #333; margin-bottom: 10px; }
+        .upload-subtext { color: #666; font-size: 1em; }
+        #fileInput { display: none; }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        @keyframes previewSlideIn { from { opacity: 0; transform: scale(0.7) rotateY(15deg); } to { opacity: 1; transform: scale(1) rotateY(0); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .pages-container { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; padding: 20px; }
+            .controls, .resolution-control { flex-direction: column; text-align: center; }
+            .resolution-control { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 PDF Viewer - Resoluciones OPTIMIZADAS</h1>
+            <p>Thumbnails cuadrados + Vista previa + <strong>CALIDAD PROFESIONAL</strong></p>
+            <div class="resolution-control">
+                <label>Resolución de copia:</label>
+                <select id="resolutionMode" class="resolution-select">
+                    <option value="1.5">📱 Normal (1.5x) - 600x800px</option>
+                    <option value="2.5" selected>🖥️ Alta (2.5x) - 1200x1600px</option>
+                    <option value="4.0">🖨️ Premium (4x) - 2000x2600px</option>
+                    <option value="8.0">🎬 8K (8x) - 4000x5300px</option>
+                </select>
+                <div class="resolution-info" id="resolutionInfo">Alta (2.5x) - 1200x1600px</div>
+            </div>
+        </div>
+
+        <div class="upload-area">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📎</div>
+                <div class="upload-text">Arrastra tu PDF aquí</div>
+                <div class="upload-subtext">o haz clic para seleccionar un archivo</div>
+                <input type="file" id="fileInput" accept=".pdf">
+            </div>
+        </div>
+
+        <div class="loading" id="loading" style="display: none; padding: 40px; text-align: center;">
+            <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #4facfe; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <p>Procesando PDF... Creando imágenes en alta resolución</p>
+        </div>
+
+        <div class="status-message" id="statusMessage" style="display: none; padding: 20px; text-align: center; background: #e3f2fd; border-radius: 10px; margin: 20px;"></div>
+
+        <div class="pages-container" id="pagesContainer"></div>
+
+        <div class="controls">
+            <div class="page-info" id="pageInfo">Selecciona un PDF para comenzar</div>
+            <div class="thumbnail-control">
+                <label>Tamaño thumbnails:</label>
+                <input type="range" id="thumbnailSize" class="thumbnail-size" min="100" max="200" value="160">
+                <span id="sizeValue">160px</span>
+            </div>
+            <div id="totalPages">0 páginas</div>
+        </div>
+    </div>
+
+    <!-- VISTA PREVIA -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-container">
+            <div class="preview-header" id="previewHeader">Página 1</div>
+            <img class="preview-image" id="previewImage" alt="Vista previa">
+            <div class="preview-nav prev" id="prevBtn">‹</div>
+            <div class="preview-nav next" id="nextBtn">›</div>
+            <div class="preview-close" id="closePreview">✕</div>
+        </div>
+    </div>
+
+    <!-- MENÚ CONTEXTUAL -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" id="copyImage">📋 Copiar imagen (SINGLE)</div>
+        <div class="context-menu-item" id="copyImageSmart">🧠 Copiar imagen (SMART)</div>
+        <div class="context-menu-item" id="downloadImage">⬇️ Descargar imagen</div>
+        <div class="context-menu-item" id="copyAll">📚 Copiar todas las páginas</div>
+        <div class="context-menu-item" id="resolutionInfoMenu">ℹ️ Resolución: <span id="currentResMenu"></span></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        class PDFOptimizedViewer {
+            constructor() {
+                this.pdfDoc = null;
+                this.canvases = [];
+                this.thumbnails = [];
+                this.currentPreviewIndex = 0;
+                this.thumbnailSize = 160;
+                this.resolutionScale = 2.5;
+                this.previewModal = null;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.setupThumbnailControl();
+                this.setupResolutionControl();
+                this.setupPreviewModal();
+            }
+
+            setupResolutionControl() {
+                const select = document.getElementById('resolutionMode');
+                const info = document.getElementById('resolutionInfo');
+                const menuInfo = document.getElementById('currentResMenu');
+
+                select.addEventListener('change', (e) => {
+                    this.resolutionScale = parseFloat(e.target.value);
+                    const option = e.target.options[e.target.selectedIndex];
+                    
+                    info.textContent = option.textContent;
+                    menuInfo.textContent = option.textContent;
+                    
+                    this.showNotification(`🎛️ Resolución cambiada a: ${option.textContent}`);
+                });
+
+                // Inicializar info
+                const initialOption = select.options[select.selectedIndex];
+                info.textContent = initialOption.textContent;
+                menuInfo.textContent = initialOption.textContent;
+            }
+
+            setupEventListeners() {
+                const uploadZone = document.getElementById('uploadZone');
+                const fileInput = document.getElementById('fileInput');
+
+                uploadZone.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files[0]) this.loadPDF(e.target.files[0]);
+                });
+
+                uploadZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+                uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+                uploadZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0 && files[0].type === 'application/pdf') {
+                        this.loadPDF(files[0]);
+                    }
+                });
+
+                document.addEventListener('click', () => {
+                    document.getElementById('contextMenu').style.display = 'none';
+                });
+            }
+
+            setupPreviewModal() {
+                this.previewModal = document.getElementById('previewModal');
+                const closeBtn = document.getElementById('closePreview');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+
+                closeBtn.addEventListener('click', () => this.closePreview());
+                prevBtn.addEventListener('click', () => this.prevPage());
+                nextBtn.addEventListener('click', () => this.nextPage());
+
+                document.addEventListener('keydown', (e) => {
+                    if (this.previewModal.classList.contains('active')) {
+                        if (e.key === 'Escape') this.closePreview();
+                        if (e.key === 'ArrowLeft') this.prevPage();
+                        if (e.key === 'ArrowRight') this.nextPage();
+                    }
+                });
+
+                document.getElementById('previewImage').addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.selectedCanvas = this.canvases[this.currentPreviewIndex];
+                    this.showContextMenu(e);
+                });
+            }
+
+            setupThumbnailControl() {
+                const slider = document.getElementById('thumbnailSize');
+                const sizeValue = document.getElementById('sizeValue');
+
+                slider.addEventListener('input', (e) => {
+                    this.thumbnailSize = parseInt(e.target.value);
+                    sizeValue.textContent = `${this.thumbnailSize}px`;
+                    this.updateThumbnailSizes();
+                });
+            }
+
+            async loadPDF(file) {
+                const loading = document.getElementById('loading');
+                const pagesContainer = document.getElementById('pagesContainer');
+                const statusMessage = document.getElementById('statusMessage');
+
+                try {
+                    loading.style.display = 'block';
+                    pagesContainer.innerHTML = '';
+                    this.canvases = [];
+                    this.thumbnails = [];
+                    statusMessage.style.display = 'none';
+
+                    const arrayBuffer = await file.arrayBuffer();
+                    this.pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+
+                    document.getElementById('pageInfo').textContent = `PDF cargado: ${file.name}`;
+                    document.getElementById('totalPages').textContent = `${this.pdfDoc.numPages} páginas`;
+
+                    for (let i = 1; i <= this.pdfDoc.numPages; i++) {
+                        await this.renderThumbnail(i);
+                    }
+
+                    this.updateThumbnailSizes();
+                    loading.style.display = 'none';
+                    statusMessage.style.display = 'block';
+                    statusMessage.innerHTML = `✅ ${this.pdfDoc.numPages} páginas listas en ${this.resolutionScale}x`;
+                    statusMessage.style.background = '#d4edda';
+                    statusMessage.style.color = '#155724';
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    loading.style.display = 'none';
+                    statusMessage.style.display = 'block';
+                    statusMessage.innerHTML = `❌ Error: ${error.message}`;
+                    statusMessage.style.background = '#f8d7da';
+                    statusMessage.style.color = '#721c24';
+                }
+            }
+
+            async renderThumbnail(pageNum) {
+                const page = await this.pdfDoc.getPage(pageNum);
+                
+                // 1. THUMBNAIL PEQUEÑO
+                const thumbnailScale = 0.7;
+                const thumbnailViewport = page.getViewport({ scale: thumbnailScale });
+                const thumbnailCanvas = document.createElement('canvas');
+                thumbnailCanvas.width = thumbnailViewport.width;
+                thumbnailCanvas.height = thumbnailViewport.height;
+                
+                await page.render({
+                    canvasContext: thumbnailCanvas.getContext('2d'),
+                    viewport: thumbnailViewport
+                }).promise;
+
+                // 2. VISTA PREVIA MEDIA
+                const previewScale = 1.8;
+                const previewViewport = page.getViewport({ scale: previewScale });
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.width = previewViewport.width;
+                previewCanvas.height = previewViewport.height;
+                
+                await page.render({
+                    canvasContext: previewCanvas.getContext('2d'),
+                    viewport: previewViewport
+                }).promise;
+
+                // 3. CANVAS OPTIMIZADO (solo resoluciones útiles)
+                const optimizedCanvas = document.createElement('canvas');
+                optimizedCanvas.dataset.pageNum = pageNum;
+                
+                const optimizedViewport = page.getViewport({ scale: this.resolutionScale });
+                optimizedCanvas.width = optimizedViewport.width;
+                optimizedCanvas.height = optimizedViewport.height;
+                
+                await page.render({
+                    canvasContext: optimizedCanvas.getContext('2d'),
+                    viewport: optimizedViewport
+                }).promise;
+
+                // Crear DOM
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'page-container';
+                pageContainer.dataset.pageNum = pageNum;
+
+                const thumbnailWrapper = document.createElement('div');
+                thumbnailWrapper.className = 'thumbnail-wrapper';
+
+                const thumbnailImg = document.createElement('img');
+                thumbnailImg.className = 'page-canvas';
+                thumbnailImg.src = thumbnailCanvas.toDataURL('image/png');
+
+                const pageNumber = document.createElement('div');
+                pageNumber.className = 'page-number';
+                pageNumber.textContent = `P${pageNum}`;
+
+                thumbnailWrapper.appendChild(thumbnailImg);
+                pageContainer.appendChild(thumbnailWrapper);
+                pageContainer.appendChild(pageNumber);
+                document.getElementById('pagesContainer').appendChild(pageContainer);
+
+                this.thumbnails.push({ 
+                    element: thumbnailImg, 
+                    container: pageContainer,
+                    previewData: previewCanvas.toDataURL('image/png')
+                });
+                this.canvases.push(optimizedCanvas);
+
+                this.setupThumbnailEvents(thumbnailImg, pageContainer, pageNum - 1);
+            }
+
+            setupThumbnailEvents(thumbnailImg, pageContainer, index) {
+                thumbnailImg.addEventListener('click', () => this.openPreview(index));
+                thumbnailImg.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.selectedCanvas = this.canvases[index];
+                    this.showContextMenu(e);
+                });
+            }
+
+            /* VISTA PREVIA */
+            openPreview(index) {
+                this.currentPreviewIndex = index;
+                const previewData = this.thumbnails[index].previewData;
+                const pageNum = index + 1;
+                
+                document.getElementById('previewImage').src = previewData;
+                document.getElementById('previewHeader').textContent = `Página ${pageNum} (${this.resolutionScale}x)`;
+                
+                this.previewModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            closePreview() {
+                this.previewModal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+
+            prevPage() { if (this.currentPreviewIndex > 0) this.openPreview(this.currentPreviewIndex - 1); }
+            nextPage() { if (this.currentPreviewIndex < this.thumbnails.length - 1) this.openPreview(this.currentPreviewIndex + 1); }
+
+            updateThumbnailSizes() {
+                const containers = document.querySelectorAll('.page-container');
+                const grid = document.getElementById('pagesContainer');
+                const newMinMax = Math.max(120, this.thumbnailSize - 20);
+                grid.style.gridTemplateColumns = `repeat(auto-fill, minmax(${newMinMax}px, 1fr))`;
+                
+                containers.forEach(container => {
+                    container.style.width = `${this.thumbnailSize}px`;
+                    container.style.height = `${this.thumbnailSize}px`;
+                });
+            }
+
+            showContextMenu(e) {
+                const contextMenu = document.getElementById('contextMenu');
+                contextMenu.style.display = 'block';
+                contextMenu.style.left = `${e.clientX}px`;
+                contextMenu.style.top = `${e.clientY}px`;
+
+                const menuHeight = contextMenu.offsetHeight;
+                const menuWidth = contextMenu.offsetWidth;
+                
+                if (e.clientY + menuHeight > window.innerHeight) {
+                    contextMenu.style.top = `${e.clientY - menuHeight}px`;
+                }
+                if (e.clientX + menuWidth > window.innerWidth) {
+                    contextMenu.style.left = `${e.clientX - menuWidth}px`;
+                }
+            }
+
+            /* FUNCIONES DE COPIA */
+            async copyImageSmart() {
+                if (!this.canvases.length || !this.selectedCanvas) return;
+                
+                const blobs = [];
+                for (let i = 0; i < this.canvases.length; i++) {
+                    const blob = await this.canvasToBlob(this.canvases[i]);
+                    blobs.push(blob);
+                }
+                
+                const selectedIndex = parseInt(this.selectedCanvas.dataset.pageNum) - 1;
+                const selectedBlob = blobs.splice(selectedIndex, 1)[0];
+                blobs.push(selectedBlob);
+                
+                await this.copyBlobsToClipboard(blobs);
+                this.showNotification(`✅ SMART COPY ${this.resolutionScale}x: Página ${this.selectedCanvas.dataset.pageNum}`);
+            }
+
+            async copySingleImage() {
+                if (!this.selectedCanvas) return;
+                const blob = await this.canvasToBlob(this.selectedCanvas);
+                await this.copyBlobsToClipboard([blob]);
+                this.showNotification(`✅ Copia ${this.resolutionScale}x: Página ${this.selectedCanvas.dataset.pageNum}`);
+            }
+
+            async copyAllPages() {
+                if (!this.canvases.length) return;
+                const blobs = [];
+                for (const canvas of this.canvases) {
+                    const blob = await this.canvasToBlob(canvas);
+                    blobs.push(blob);
+                }
+                await this.copyBlobsToClipboard(blobs);
+                this.showNotification(`✅ ${this.canvases.length} páginas copiadas (${this.resolutionScale}x)`);
+            }
+
+            canvasToBlob(canvas) {
+                return new Promise((resolve) => {
+                    canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+                });
+            }
+
+            async copyBlobsToClipboard(blobs) {
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        const items = blobs.map(blob => new ClipboardItem({ 'image/png': blob }));
+                        await navigator.clipboard.write(items);
+                    } else {
+                        const lastItem = new ClipboardItem({ 'image/png': blobs[blobs.length - 1] });
+                        await navigator.clipboard.write([lastItem]);
+                    }
+                } catch (error) {
+                    console.error('Error copying:', error);
+                    this.downloadCanvas(this.selectedCanvas);
+                    this.showNotification('📥 Imagen descargada (fallback)');
+                }
+            }
+
+            downloadCanvas(canvas) {
+                const link = document.createElement('a');
+                link.download = `pagina-${canvas.dataset.pageNum}_HD${this.resolutionScale}x.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            }
+
+            showNotification(message) {
+                const existing = document.querySelector('.notification');
+                if (existing) existing.remove();
+
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `<strong>${message}</strong>`;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 4000);
+            }
+        }
+
+        // Inicializar
+        const viewer = new PDFOptimizedViewer();
+
+        // Event listeners menú contextual
+        document.getElementById('copyImage').addEventListener('click', async () => {
+            await viewer.copySingleImage();
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        document.getElementById('copyImageSmart').addEventListener('click', async () => {
+            await viewer.copyImageSmart();
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        document.getElementById('downloadImage').addEventListener('click', () => {
+            if (viewer.selectedCanvas) viewer.downloadCanvas(viewer.selectedCanvas);
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        document.getElementById('copyAll').addEventListener('click', async () => {
+            await viewer.copyAllPages();
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

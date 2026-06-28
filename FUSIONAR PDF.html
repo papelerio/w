@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Visual Workshop - Compresor Real</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        :root {
+            --verde-fondo: #e8f3e9;
+            --verde-pastel: #d4e9d7;
+            --verde-fuerte: #8fb996;
+            --crema: #fdfaf6;
+            --texto: #4a5d4e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--verde-fondo); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        #bandeja { width: 380px; background: var(--verde-pastel); border-right: 2px solid var(--verde-fuerte); display: flex; flex-direction: column; padding: 15px; }
+        
+        .import-buttons { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .btn-import { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: var(--verde-fuerte); color: white; transition: all 0.2s; font-size: 13px; }
+        .btn-import:hover { transform: translateY(-2px); background: #7aa885; }
+        
+        #lista-hojas { overflow-y: auto; flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; background: rgba(255,255,255,0.3); border-radius: 8px; min-height: 200px; }
+
+        .miniatura-hoja { 
+            background: white; border: 1px solid #aaa; padding: 5px; border-radius: 5px; 
+            cursor: grab; text-align: center; font-size: 0.7rem; 
+            transition: transform 0.1s;
+        }
+        .miniatura-hoja:active { cursor: grabbing; }
+        .miniatura-hoja img { width: 100%; pointer-events: none; border-radius: 3px; }
+
+        #editor { flex: 1; padding: 20px; display: flex; flex-direction: column; background: var(--crema); overflow-y: auto; }
+        
+        #zona-ensamblaje { 
+            flex: 1; border: 3px dashed var(--verde-fuerte); border-radius: 15px; 
+            display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; overflow-y: auto;
+            background: white; align-content: flex-start;
+            min-height: 300px;
+            max-height: 400px;
+            transition: background 0.2s;
+        }
+        #zona-ensamblaje.drag-over { background: #e8f5e9; border-color: #4caf50; }
+        
+        .zona-vacia-hint { color: #aaa; width: 100%; text-align: center; margin-top: 50px; pointer-events: none; font-size: 16px; }
+
+        .vineta { 
+            width: 140px;
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            cursor: default;
+        }
+        
+        .vineta img { width: 100%; height: auto; display: block; }
+        
+        .vineta-botones {
+            display: flex;
+            gap: 5px;
+            padding: 5px;
+            background: #f5f5f5;
+            border-top: 1px solid #ddd;
+        }
+        
+        .btn-agarre {
+            flex: 1;
+            background: var(--verde-fuerte);
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: grab;
+            font-size: 12px;
+        }
+        
+        .btn-del-vineta {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 30px;
+        }
+
+        .panel-compresion {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid var(--verde-fuerte);
+        }
+        
+        .titulo-compresion {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--texto);
+        }
+        
+        .opciones-compresion {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .opcion-compresion {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+        
+        .opcion-compresion:hover { transform: translateY(-2px); }
+        .opcion-compresion.seleccionada {
+            border-color: var(--verde-fuerte);
+            background: var(--verde-pastel);
+            font-weight: bold;
+        }
+        
+        .info-tamano {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .btn-save { background: var(--verde-fuerte); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s; width: 100%; }
+        .btn-save:hover { background: #7aa885; transform: translateY(-2px); }
+        .btn-clear { background: #ff9999; margin-top: 5px; }
+        .btn-clear:hover { background: #ff6666; }
+
+        .info-panel { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.5); border-radius: 8px; }
+        .contador { font-size: 13px; font-weight: bold; color: var(--texto); }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius: 8px; z-index: 1000; animation: slideIn 0.3s ease; z-index: 10000; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 20px; border-radius: 10px; z-index: 20000; text-align: center; }
+        .loading-spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--verde-fuerte); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .sortable-chosen { background-color: #e8f5e9; }
+        .sortable-drag { opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+<div id="bandeja">
+    <div class="import-buttons">
+        <button class="btn-import" id="btn-manual">📂 Seleccionar PDF(s)</button>
+        <button class="btn-import" id="btn-paste">📋 Pegar (CTRL+V)</button>
+    </div>
+    <input type="file" id="file-input" multiple accept="application/pdf" style="display:none">
+    <div style="font-weight: bold; margin: 5px 0;">📄 Páginas disponibles:</div>
+    <div id="lista-hojas"></div>
+    <div class="info-panel">
+        <div class="contador" id="contador-bandeja">0 páginas</div>
+        <div class="status">💡 Arrastra al editor</div>
+    </div>
+</div>
+
+<div id="editor">
+    <h3>📐 Editor de Ensamblaje</h3>
+    <div style="font-size: 13px; margin-bottom: 10px; color: #666;">
+        💡 Usa el botón 🖐️ para reorganizar | Suelta PDFs directamente | CTRL+V
+    </div>
+    <div id="zona-ensamblaje">
+        <div class="zona-vacia-hint">✨ Suelta PDFs, páginas o usa CTRL+V ✨</div>
+    </div>
+    
+    <div class="panel-compresion">
+        <div class="titulo-compresion">🗜️ Compresión de PDF (CALIDAD DE IMAGEN)</div>
+        <div class="opciones-compresion">
+            <div class="opcion-compresion seleccionada" data-calidad="1.0" data-nivel="original">
+                📄 Original<br><small>100% calidad</small>
+            </div>
+            <div class="opcion-compresion" data-calidad="0.7" data-nivel="ligera">
+                🟢 Ligera<br><small>70% calidad</small>
+            </div>
+            <div class="opcion-compresion" data-calidad="0.5" data-nivel="media">
+                🟡 Media<br><small>50% calidad</small>
+            </div>
+            <div class="opcion-compresion" data-calidad="0.3" data-nivel="alta">
+                🔴 Alta<br><small>30% calidad</small>
+            </div>
+            <div class="opcion-compresion" data-calidad="0.1" data-nivel="extrema">
+                ⚫ Extrema<br><small>10% calidad</small>
+            </div>
+        </div>
+        <div class="info-tamano" id="info-tamano">
+            💡 La compresión reduce la calidad de las imágenes para disminuir el tamaño del archivo
+        </div>
+    </div>
+    
+    <button class="btn-save" id="btn-export">💾 Guardar PDF (con compresión real)</button>
+    <button class="btn-save btn-clear" id="btn-clear">🗑️ Limpiar todo</button>
+    
+    <div class="info-panel">
+        <div class="contador" id="contador-editor">0 páginas</div>
+        <div class="status">🖐️ Arrastra del botón para reordenar</div>
+    </div>
+</div>
+
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    
+    const listaHojas = document.getElementById('lista-hojas');
+    const zonaEnsamblaje = document.getElementById('zona-ensamblaje');
+    const btnExport = document.getElementById('btn-export');
+    const btnClear = document.getElementById('btn-clear');
+    const contadorBandeja = document.getElementById('contador-bandeja');
+    const contadorEditor = document.getElementById('contador-editor');
+    const fileInput = document.getElementById('file-input');
+    
+    let loadingIndicator = null;
+    let sortableInstance = null;
+    let calidadCompresion = 1.0; // 1 = original, 0.7 = ligera, etc.
+    
+    // Almacén de páginas con sus buffers originales
+    let paginasEnEditor = [];
+
+    function mostrarLoading(mensaje = '⏳ Procesando...') {
+        if(loadingIndicator) return;
+        loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'loading';
+        loadingIndicator.innerHTML = `<div class="loading-spinner"></div><div>${mensaje}</div>`;
+        document.body.appendChild(loadingIndicator);
+    }
+    
+    function ocultarLoading() {
+        if(loadingIndicator) {
+            loadingIndicator.remove();
+            loadingIndicator = null;
+        }
+    }
+
+    function mostrarToast(mensaje, esError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = mensaje;
+        toast.style.background = esError ? '#f44336' : '#4caf50';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function actualizarContadores() {
+        const totalBandeja = listaHojas.children.length;
+        const totalEditor = zonaEnsamblaje.querySelectorAll('.vineta:not(.zona-vacia-hint)').length;
+        contadorBandeja.textContent = `${totalBandeja} página${totalBandeja !== 1 ? 's' : ''}`;
+        contadorEditor.textContent = `${totalEditor} página${totalEditor !== 1 ? 's' : ''}`;
+        
+        const hint = zonaEnsamblaje.querySelector('.zona-vacia-hint');
+        if (totalEditor === 0 && !hint) {
+            const newHint = document.createElement('div');
+            newHint.className = 'zona-vacia-hint';
+            newHint.textContent = '✨ Suelta PDFs, páginas o usa CTRL+V ✨';
+            zonaEnsamblaje.appendChild(newHint);
+        } else if (totalEditor > 0 && hint) {
+            hint.remove();
+        }
+    }
+
+    function inicializarSortable() {
+        if (sortableInstance) sortableInstance.destroy();
+        sortableInstance = new Sortable(zonaEnsamblaje, {
+            animation: 300,
+            handle: '.btn-agarre',
+            draggable: '.vineta',
+            onEnd: () => actualizarContadores()
+        });
+    }
+
+    // Convertir página de PDF a imagen comprimida y luego a nuevo PDF
+    async function convertirPaginaAImagenComprimida(buffer, pageIndex, calidad) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Cargar el PDF original
+                const pdfDoc = await pdfjsLib.getDocument({data: buffer}).promise;
+                const page = await pdfDoc.getPage(pageIndex + 1);
+                
+                // Renderizar a alta resolución para mejor calidad
+                const viewport = page.getViewport({scale: 2.0}); // Escala 2x para mejor calidad
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                await page.render({canvasContext: context, viewport: viewport}).promise;
+                
+                // Convertir a JPEG con la calidad seleccionada
+                const imagenDataUrl = canvas.toDataURL('image/jpeg', calidad);
+                
+                // Crear nuevo PDF con la imagen comprimida
+                const nuevoPdf = await PDFLib.PDFDocument.create();
+                const imagenEmbed = await nuevoPdf.embedJpg(imagenDataUrl);
+                
+                // Calcular dimensiones para que quepa en página A4 o mantener proporción
+                const pageWidth = imagenEmbed.width;
+                const pageHeight = imagenEmbed.height;
+                
+                const nuevaPagina = nuevoPdf.addPage([pageWidth, pageHeight]);
+                nuevaPagina.drawImage(imagenEmbed, {
+                    x: 0,
+                    y: 0,
+                    width: pageWidth,
+                    height: pageHeight,
+                });
+                
+                const pdfBytes = await nuevoPdf.save();
+                resolve(pdfBytes);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    // Procesar PDF y extraer páginas
+    async function procesarPDF(file, añadirAlEditor = false) {
+        mostrarLoading(`📄 Procesando ${file.name}...`);
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+            const numPages = pdfDoc.numPages;
+            
+            const pages = [];
+            
+            for (let i = 1; i <= numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({scale: 0.25});
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                await page.render({canvasContext: context, viewport: viewport}).promise;
+                const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                pages.push({
+                    src: imgData,
+                    buffer: arrayBuffer,
+                    pageIndex: i - 1,
+                    fileName: file.name,
+                    pageNum: i
+                });
+            }
+            
+            if (añadirAlEditor) {
+                for (const page of pages) {
+                    agregarPaginaAlEditor(page);
+                }
+                mostrarToast(`✅ ${pages.length} página(s) añadidas al editor`);
+            } else {
+                for (const page of pages) {
+                    crearItemBandeja(page);
+                }
+                mostrarToast(`✅ ${file.name}: ${pages.length} página(s) cargadas`);
+            }
+            
+            actualizarContadores();
+            return pages;
+        } catch (error) {
+            console.error(error);
+            mostrarToast(`❌ Error al procesar ${file.name}`, true);
+            return [];
+        } finally {
+            ocultarLoading();
+        }
+    }
+
+    function crearItemBandeja(pageData) {
+        const div = document.createElement('div');
+        div.className = 'miniatura-hoja';
+        div.draggable = true;
+        div.innerHTML = `<img src="${pageData.src}"><br>📄 ${pageData.fileName.substring(0, 15)} - Pág ${pageData.pageNum}`;
+        
+        div.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', 'page');
+            window.draggedPageData = pageData;
+            div.style.opacity = '0.5';
+        });
+        
+        div.addEventListener('dragend', () => {
+            div.style.opacity = '1';
+            window.draggedPageData = null;
+        });
+        
+        listaHojas.appendChild(div);
+    }
+
+    function agregarPaginaAlEditor(pageData) {
+        const vineta = document.createElement('div');
+        vineta.className = 'vineta';
+        vineta.innerHTML = `
+            <img src="${pageData.src}">
+            <div class="vineta-botones">
+                <button class="btn-agarre" title="Arrastrar para reorganizar">🖐️ Mover</button>
+                <button class="btn-del-vineta" title="Eliminar página" onclick="eliminarPagina(this)">✖️</button>
+            </div>
+        `;
+        vineta._pdfInfo = { 
+            buffer: pageData.buffer, 
+            pageIndex: pageData.pageIndex,
+            fileName: pageData.fileName
+        };
+        
+        zonaEnsamblaje.appendChild(vineta);
+        actualizarContadores();
+        inicializarSortable();
+    }
+    
+    function eliminarPagina(boton) {
+        boton.closest('.vineta').remove();
+        actualizarContadores();
+        mostrarToast('🗑️ Página eliminada');
+    }
+
+    // Exportar con compresión REAL
+    async function exportarConCompresion() {
+        const vinetas = zonaEnsamblaje.querySelectorAll('.vineta');
+        if(vinetas.length === 0) {
+            mostrarToast('⚠️ El editor está vacío', true);
+            return;
+        }
+
+        const nivelesTexto = {
+            1.0: 'Original',
+            0.7: 'Ligera (70%)',
+            0.5: 'Media (50%)',
+            0.3: 'Alta (30%)',
+            0.1: 'Extrema (10%)'
+        };
+        
+        mostrarLoading(`🗜️ Comprimiendo PDF con calidad ${nivelesTexto[calidadCompresion]}...`);
+        
+        try {
+            const pdfFinal = await PDFLib.PDFDocument.create();
+            let tamañoOriginalTotal = 0;
+            let tamañoComprimidoTotal = 0;
+            
+            // Procesar cada página
+            for (let i = 0; i < vinetas.length; i++) {
+                const v = vinetas[i];
+                const info = v._pdfInfo;
+                
+                if (calidadCompresion === 1.0) {
+                    // Sin compresión - copiar página original
+                    const srcDoc = await PDFLib.PDFDocument.load(info.buffer);
+                    const [copiedPage] = await pdfFinal.copyPages(srcDoc, [info.pageIndex]);
+                    pdfFinal.addPage(copiedPage);
+                    
+                    // Calcular tamaño aproximado
+                    const pageSize = info.buffer.byteLength / vinetas.length;
+                    tamañoOriginalTotal += pageSize;
+                    tamañoComprimidoTotal += pageSize;
+                } else {
+                    // CON COMPRESIÓN REAL - Convertir página a imagen comprimida
+                    const paginaComprimida = await convertirPaginaAImagenComprimida(
+                        info.buffer, 
+                        info.pageIndex, 
+                        calidadCompresion
+                    );
+                    
+                    // Cargar la página comprimida y añadir al PDF final
+                    const pdfComprimido = await PDFLib.PDFDocument.load(paginaComprimida);
+                    const [copiedPage] = await pdfFinal.copyPages(pdfComprimido, [0]);
+                    pdfFinal.addPage(copiedPage);
+                    
+                    // Acumular tamaños
+                    tamañoOriginalTotal += info.buffer.byteLength / vinetas.length;
+                    tamañoComprimidoTotal += paginaComprimida.byteLength;
+                }
+                
+                // Actualizar progreso
+                if (i % 3 === 0) {
+                    mostrarLoading(`🗜️ Procesando página ${i + 1} de ${vinetas.length}...`);
+                }
+            }
+            
+            const bytesFinales = await pdfFinal.save();
+            const tamañoRealComprimido = bytesFinales.byteLength;
+            
+            const porcentajeReduccion = ((tamañoOriginalTotal - tamañoRealComprimido) / tamañoOriginalTotal * 100).toFixed(1);
+            const tamañoOriginalMB = (tamañoOriginalTotal / 1024 / 1024).toFixed(2);
+            const tamañoComprimidoMB = (tamañoRealComprimido / 1024 / 1024).toFixed(2);
+            
+            // Descargar
+            const blob = new Blob([bytesFinales], {type: 'application/pdf'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const nombreNivel = nivelesTexto[calidadCompresion].toLowerCase().replace(/[^a-z]/g, '_');
+            a.download = `ensamblaje_${nombreNivel}_${Date.now()}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            if (calidadCompresion === 1.0) {
+                mostrarToast(`✅ PDF Original guardado - ${tamañoComprimidoMB} MB`);
+            } else {
+                mostrarToast(`✅ PDF Comprimido (${nivelesTexto[calidadCompresion]}) - ${tamañoComprimidoMB} MB (${porcentajeReduccion}% más pequeño que original ${tamañoOriginalMB} MB)`);
+            }
+            
+        } catch(error) {
+            console.error('Error:', error);
+            mostrarToast(`❌ Error: ${error.message}`, true);
+        } finally {
+            ocultarLoading();
+        }
+    }
+
+    // Eventos de UI
+    document.getElementById('btn-manual').onclick = () => fileInput.click();
+    fileInput.onchange = async (e) => {
+        for (const file of e.target.files) {
+            await procesarPDF(file, false);
+        }
+        fileInput.value = '';
+    };
+    
+    // Drag & Drop en editor
+    zonaEnsamblaje.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zonaEnsamblaje.classList.add('drag-over');
+    });
+    
+    zonaEnsamblaje.addEventListener('dragleave', () => {
+        zonaEnsamblaje.classList.remove('drag-over');
+    });
+    
+    zonaEnsamblaje.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        zonaEnsamblaje.classList.remove('drag-over');
+        
+        if (window.draggedPageData) {
+            agregarPaginaAlEditor(window.draggedPageData);
+            mostrarToast('✅ Página añadida al editor');
+            return;
+        }
+        
+        const files = Array.from(e.dataTransfer.files);
+        const pdfFiles = files.filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
+        
+        if (pdfFiles.length > 0) {
+            for (const file of pdfFiles) {
+                await procesarPDF(file, true);
+            }
+        }
+    });
+    
+    // CTRL+V
+    document.getElementById('btn-paste').onclick = () => mostrarToast('💡 Presiona CTRL+V para pegar un PDF');
+    document.addEventListener('paste', async (e) => {
+        const items = e.clipboardData.items;
+        for (const item of items) {
+            if (item.type === 'application/pdf') {
+                const file = item.getAsFile();
+                if (file) {
+                    mostrarToast('📋 PDF detectado en portapapeles');
+                    await procesarPDF(file, true);
+                    return;
+                }
+            }
+        }
+    });
+    
+    // Soltar en bandeja
+    listaHojas.addEventListener('dragover', (e) => e.preventDefault());
+    listaHojas.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const files = Array.from(e.dataTransfer.files);
+        const pdfFiles = files.filter(f => f.type === 'application/pdf');
+        if (pdfFiles.length > 0) {
+            for (const file of pdfFiles) {
+                await procesarPDF(file, false);
+            }
+        }
+    });
+    
+    // Selección de compresión
+    document.querySelectorAll('.opcion-compresion').forEach(opcion => {
+        opcion.addEventListener('click', () => {
+            document.querySelectorAll('.opcion-compresion').forEach(opt => opt.classList.remove('seleccionada'));
+            opcion.classList.add('seleccionada');
+            calidadCompresion = parseFloat(opcion.dataset.calidad);
+            const nivel = opcion.dataset.nivel;
+            mostrarToast(`✅ Compresión ${nivel} seleccionada (${calidadCompresion * 100}% calidad)`);
+        });
+    });
+    
+    btnClear.onclick = () => {
+        if(confirm('¿Limpiar todo el ensamblaje?')) {
+            zonaEnsamblaje.innerHTML = '<div class="zona-vacia-hint">✨ Suelta PDFs, páginas o usa CTRL+V ✨</div>';
+            actualizarContadores();
+            inicializarSortable();
+            mostrarToast('🧹 Editor limpiado');
+        }
+    };
+    
+    btnExport.onclick = exportarConCompresion;
+    
+    inicializarSortable();
+    actualizarContadores();
+    mostrarToast('✅ App lista! La compresión ahora funciona reduciendo calidad de imágenes');
+</script>
+</body>
+</html>

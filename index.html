@@ -1,556 +1,140 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reordenador de PDF - Múltiples Modos</title>
+    <title>Antigravity CPT - Tool Suite</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        
-        header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        
-        .content {
-            padding: 30px;
-        }
-        
-        .mode-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        
-        .mode-btn {
-            padding: 20px 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        
-        .mode-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        }
-        
-        .mode-btn.active {
-            transform: scale(1.05);
-            box-shadow: 0 0 0 3px white, 0 8px 25px rgba(0,0,0,0.3);
-        }
-        
-        .mode-4 {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .mode-2 {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        
-        .mode-9 {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        
-        .mode-16 {
-            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
-        }
-        
-        .mode-icon {
-            font-size: 2rem;
-        }
-        
-        .mode-pattern {
-            font-size: 0.7rem;
-            opacity: 0.9;
-            font-family: monospace;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding: 0 5px;
-        }
-        
-        .upload-area {
-            border: 3px dashed #cbd5e0;
-            border-radius: 16px;
             padding: 40px 20px;
+            color: white;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             text-align: center;
-            margin: 25px 0;
-            background: #f7fafc;
-            transition: all 0.3s;
-            cursor: pointer;
         }
-        
-        .upload-area.dragover {
-            border-color: #667eea;
-            background: #f0f4ff;
-            transform: scale(1.02);
-        }
-        
-        .upload-icon {
-            font-size: 48px;
-            color: #4a5568;
-            margin-bottom: 15px;
-        }
-        
-        .upload-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            cursor: pointer;
+        .subtitle {
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 40px;
             font-size: 1rem;
-            margin-top: 15px;
-            font-weight: 600;
-            transition: all 0.3s;
+            text-align: center;
         }
-        
-        .upload-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin: 25px 0;
-        }
-        
-        .control-btn {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s;
-            color: white;
-        }
-        
-        .process-btn {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-        }
-        
-        .process-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .download-btn {
-            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-        }
-        
-        .download-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .status {
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            font-weight: 500;
-        }
-        
-        .success {
-            background: #c6f6d5;
-            color: #22543d;
-            border-left: 5px solid #48bb78;
-        }
-        
-        .error {
-            background: #fed7d7;
-            color: #742a2a;
-            border-left: 5px solid #f56565;
-        }
-        
-        .info {
-            background: #bee3f8;
-            color: #2c5282;
-            border-left: 5px solid #4299e1;
-        }
-        
-        .page-previews {
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 20px;
-            background: #edf2f7;
-            border-radius: 12px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            width: 100%;
         }
-        
-        .page-thumb {
-            padding: 15px 10px;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 0.85rem;
-            font-weight: 500;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        .card {
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px 24px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .page-real {
-            background: white;
-            border: 2px solid #4299e1;
-            color: #2c5282;
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15));
+            opacity: 0;
+            transition: opacity 0.35s;
         }
-        
-        .page-blank {
-            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
-            border: 2px dashed #718096;
-            color: #4a5568;
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(102,126,234,0.5);
+            box-shadow: 0 20px 60px rgba(102,126,234,0.3);
         }
-        
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: #718096;
-            border-top: 2px solid #e2e8f0;
-            background: #f8fafc;
+        .card:hover::before { opacity: 1; }
+        .card-icon {
+            font-size: 2.8rem;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        .card p {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.65);
+            line-height: 1.5;
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+        .card .tag {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(102,126,234,0.25);
+            border: 1px solid rgba(102,126,234,0.3);
+            align-self: flex-start;
+            position: relative;
+            z-index: 1;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.3);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📚 Reordenador Inteligente de PDF</h1>
-            <p>Selecciona el modo de organización para tu libro</p>
-        </header>
-        
-        <div class="content">
-            <div class="mode-buttons">
-                <button class="mode-btn mode-4 active" id="mode4Btn" data-mode="4">
-                    <span class="mode-icon">📓</span>
-                    <span>Modo 4 Hojas</span>
-                    <span class="mode-pattern">1-6-3-8-5-2-7-4</span>
-                </button>
-                <button class="mode-btn mode-2" id="mode2Btn" data-mode="2">
-                    <span class="mode-icon">📔</span>
-                    <span>Modo 2 Hojas</span>
-                    <span class="mode-pattern">1-4-2-3</span>
-                </button>
-                <button class="mode-btn mode-9" id="mode9Btn" data-mode="9">
-                    <span class="mode-icon">📕</span>
-                    <span>Modo 9 Hojas</span>
-                    <span class="mode-pattern">1-3-5-7-9-11-13-15-17-6-4-2-12-10-8-18-16-14</span>
-                </button>
-                <button class="mode-btn mode-16" id="mode16Btn" data-mode="16">
-                    <span class="mode-icon">📗</span>
-                    <span>Modo 16 Hojas</span>
-                    <span class="mode-pattern">1-3-5-7-9-11-13-15-17-19-21-23-25-27-29-31-8-6-4-2-16-14-12-10-24-22-20-18-32-30-28-26</span>
-                </button>
-            </div>
-            
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📄</div>
-                <p style="font-size: 1.1rem; color: #2d3748; margin-bottom: 10px;">Arrastra y suelta tu archivo PDF aquí</p>
-                <p style="color: #718096; margin-bottom: 15px;">o</p>
-                <button class="upload-btn" id="fileInputBtn">
-                    📁 Seleccionar archivo
-                </button>
-                <input type="file" id="fileInput" accept=".pdf" style="display: none;">
-            </div>
-            
-            <div class="controls">
-                <button class="control-btn process-btn" id="processBtn" disabled>
-                    ⚙️ Procesar PDF
-                </button>
-                <button class="control-btn download-btn" id="downloadBtn" disabled>
-                    ⬇️ Descargar
-                </button>
-            </div>
-            
-            <div id="status" class="status info">
-                📌 Selecciona un modo y un archivo PDF para comenzar
-            </div>
-            
-            <div id="previewSection" style="display: none;">
-                <h3 style="margin-bottom: 15px; color: #2d3748;">👁️ Vista previa del reordenamiento</h3>
-                <div class="page-previews" id="pagePreviews"></div>
-            </div>
-        </div>
-        
-        <footer>
-            <p>⚡ Procesamiento 100% local - Tus archivos no salen de tu dispositivo</p>
-        </footer>
+    <h1>⚡ Antigravity CPT</h1>
+    <p class="subtitle">Suite de herramientas PDF · 100% local · sin servidores</p>
+    <div class="grid">
+        <a class="card" href="CREAR%2018%20copias%20pdf.html">
+            <div class="card-icon">🖨️</div>
+            <h2>18 Copias PDF</h2>
+            <p>Carga imágenes, pégalas desde el portapapeles y genera una hoja imprimible con 18 copias idénticas. Modo individual o múltiple.</p>
+            <span class="tag">PDF · Imágenes</span>
+        </a>
+        <a class="card" href="ELABORAR%20MINI%20LIBRO.html">
+            <div class="card-icon">📚</div>
+            <h2>Mini Libro</h2>
+            <p>Reordena páginas de cualquier PDF en modos 2, 4, 9 o 16 hojas para armar mini libros o folletos listos para imprimir.</p>
+            <span class="tag">PDF · Libros</span>
+        </a>
+        <a class="card" href="FUSIONAR%20PDF.html">
+            <div class="card-icon">🧩</div>
+            <h2>Fusionar PDF</h2>
+            <p>Fusiona múltiples PDFs arrastrando y soltando, reordena páginas visualmente y comprime el resultado con calidad ajustable.</p>
+            <span class="tag">PDF · Compresión</span>
+        </a>
+        <a class="card" href="PDF%20A%20CAPTURA%20DE%20IMAGEN.html">
+            <div class="card-icon">📸</div>
+            <h2>PDF a Imagen</h2>
+            <p>Convierte páginas de PDF a imágenes PNG en resoluciones desde Normal (1.5x) hasta 8K (8x). Copia individual, smart o todas.</p>
+            <span class="tag">PDF · Imágenes</span>
+        </a>
     </div>
-
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    
-    <script>
-        // Patrones de organización
-        const PATTERNS = {
-            4: [1, 6, 3, 8, 5, 2, 7, 4],                    // Modo 4 hojas
-            2: [1, 4, 2, 3],                                  // Modo 2 hojas
-            9: [1, 3, 5, 7, 9, 11, 13, 15, 17, 6, 4, 2, 12, 10, 8, 18, 16, 14], // Modo 9 hojas
-            16: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 
-                 8, 6, 4, 2, 16, 14, 12, 10, 24, 22, 20, 18, 32, 30, 28, 26]    // Modo 16 hojas
-        };
-
-        let currentMode = '4';
-        let pdfDoc = null;
-        let reorderedPdfDoc = null;
-        
-        // Elementos DOM
-        const elements = {
-            uploadArea: document.getElementById('uploadArea'),
-            fileInput: document.getElementById('fileInput'),
-            fileInputBtn: document.getElementById('fileInputBtn'),
-            processBtn: document.getElementById('processBtn'),
-            downloadBtn: document.getElementById('downloadBtn'),
-            statusDiv: document.getElementById('status'),
-            previewSection: document.getElementById('previewSection'),
-            pagePreviews: document.getElementById('pagePreviews'),
-            mode4Btn: document.getElementById('mode4Btn'),
-            mode2Btn: document.getElementById('mode2Btn'),
-            mode9Btn: document.getElementById('mode9Btn'),
-            mode16Btn: document.getElementById('mode16Btn')
-        };
-        
-        // Event listeners para modos
-        elements.mode4Btn.addEventListener('click', () => setMode('4'));
-        elements.mode2Btn.addEventListener('click', () => setMode('2'));
-        elements.mode9Btn.addEventListener('click', () => setMode('9'));
-        elements.mode16Btn.addEventListener('click', () => setMode('16'));
-        
-        // Event listeners para archivos
-        elements.fileInputBtn.addEventListener('click', () => elements.fileInput.click());
-        elements.fileInput.addEventListener('change', handleFileSelect);
-        
-        // Drag and drop
-        elements.uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            elements.uploadArea.classList.add('dragover');
-        });
-        
-        elements.uploadArea.addEventListener('dragleave', () => {
-            elements.uploadArea.classList.remove('dragover');
-        });
-        
-        elements.uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            elements.uploadArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length) {
-                elements.fileInput.files = e.dataTransfer.files;
-                handleFileSelect(e);
-            }
-        });
-        
-        // Event listeners para procesar y descargar
-        elements.processBtn.addEventListener('click', processPDF);
-        elements.downloadBtn.addEventListener('click', downloadPDF);
-        
-        function setMode(mode) {
-            currentMode = mode;
-            
-            // Actualizar botones activos
-            [elements.mode4Btn, elements.mode2Btn, elements.mode9Btn, elements.mode16Btn].forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            if (mode === '4') elements.mode4Btn.classList.add('active');
-            if (mode === '2') elements.mode2Btn.classList.add('active');
-            if (mode === '9') elements.mode9Btn.classList.add('active');
-            if (mode === '16') elements.mode16Btn.classList.add('active');
-            
-            // Resetear si hay un PDF cargado
-            if (pdfDoc) {
-                showStatus(`✅ Modo ${mode} hojas seleccionado. Listo para procesar.`, 'success');
-            }
-        }
-        
-        async function handleFileSelect(e) {
-            const file = elements.fileInput.files[0];
-            if (!file || file.type !== 'application/pdf') {
-                showStatus('❌ Por favor, selecciona un archivo PDF válido.', 'error');
-                return;
-            }
-            
-            showStatus('⏳ Cargando PDF...', 'info');
-            
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                pdfDoc = await window.PDFLib.PDFDocument.load(arrayBuffer);
-                const pageCount = pdfDoc.getPageCount();
-                
-                showStatus(`✅ PDF cargado: ${pageCount} páginas. Modo ${currentMode} hojas seleccionado.`, 'success');
-                elements.processBtn.disabled = false;
-                elements.downloadBtn.disabled = true;
-                
-            } catch (error) {
-                showStatus('❌ Error al cargar el PDF: ' + error.message, 'error');
-                console.error(error);
-            }
-        }
-        
-        function generatePattern(totalPages, mode) {
-            const basePattern = PATTERNS[mode];
-            const patternLength = basePattern.length;
-            const cyclesNeeded = Math.ceil(totalPages / patternLength);
-            
-            // Generar patrón completo
-            let fullPattern = [];
-            for (let cycle = 0; cycle < cyclesNeeded; cycle++) {
-                const offset = cycle * patternLength;
-                const cyclePattern = basePattern.map(pos => {
-                    const pageNum = pos + offset;
-                    return pageNum <= totalPages ? pageNum : -1;
-                });
-                fullPattern.push(...cyclePattern);
-            }
-            
-            // Eliminar páginas en blanco del final
-            while (fullPattern.length > 0 && fullPattern[fullPattern.length - 1] === -1) {
-                fullPattern.pop();
-            }
-            
-            return fullPattern;
-        }
-        
-        async function processPDF() {
-            if (!pdfDoc) return;
-            
-            showStatus('⏳ Procesando PDF...', 'info');
-            elements.processBtn.disabled = true;
-            
-            try {
-                const totalPages = pdfDoc.getPageCount();
-                const pattern = generatePattern(totalPages, currentMode);
-                
-                // Crear nuevo documento
-                reorderedPdfDoc = await window.PDFLib.PDFDocument.create();
-                
-                let realPages = 0;
-                let blankPages = 0;
-                
-                // Procesar según el patrón
-                for (const pageNum of pattern) {
-                    if (pageNum === -1) {
-                        // Añadir página en blanco (A4)
-                        reorderedPdfDoc.addPage([595, 842]);
-                        blankPages++;
-                    } else {
-                        const [copiedPage] = await reorderedPdfDoc.copyPages(pdfDoc, [pageNum - 1]);
-                        reorderedPdfDoc.addPage(copiedPage);
-                        realPages++;
-                    }
-                }
-                
-                showStatus(
-                    `✅ Procesado exitoso (Modo ${currentMode} hojas)<br>` +
-                    `📄 Original: ${totalPages} páginas → Final: ${pattern.length} páginas<br>` +
-                    `📑 ${realPages} reales + ${blankPages} en blanco`,
-                    'success'
-                );
-                
-                elements.downloadBtn.disabled = false;
-                showPreview(pattern);
-                
-            } catch (error) {
-                showStatus('❌ Error al procesar: ' + error.message, 'error');
-                console.error(error);
-                elements.processBtn.disabled = false;
-            }
-        }
-        
-        function showPreview(pattern) {
-            elements.previewSection.style.display = 'block';
-            elements.pagePreviews.innerHTML = '';
-            
-            pattern.forEach((pageNum, index) => {
-                const div = document.createElement('div');
-                
-                if (pageNum === -1) {
-                    div.className = 'page-thumb page-blank';
-                    div.innerHTML = `<strong>#${index + 1}</strong><br>📄 Página en blanco`;
-                } else {
-                    div.className = 'page-thumb page-real';
-                    div.innerHTML = `<strong>#${index + 1}</strong><br>📑 Original: ${pageNum}`;
-                }
-                
-                elements.pagePreviews.appendChild(div);
-            });
-        }
-        
-        async function downloadPDF() {
-            if (!reorderedPdfDoc) return;
-            
-            showStatus('⏫ Generando PDF...', 'info');
-            
-            try {
-                const pdfBytes = await reorderedPdfDoc.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `libro_reordenado_modo_${currentMode}_hojas.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                URL.revokeObjectURL(url);
-                
-                showStatus('✅ PDF descargado correctamente', 'success');
-                
-            } catch (error) {
-                showStatus('❌ Error al descargar: ' + error.message, 'error');
-            }
-        }
-        
-        function showStatus(message, type = 'info') {
-            elements.statusDiv.innerHTML = message;
-            elements.statusDiv.className = `status ${type}`;
-        }
-    </script>
+    <p class="footer">Tus archivos nunca salen de tu dispositivo · Procesamiento 100% local</p>
 </body>
 </html>

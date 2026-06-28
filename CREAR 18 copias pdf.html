@@ -1,0 +1,514 @@
+
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador 18 Copias - Fix Paste</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-ui: #1a1a1a;
+            --sheet-w: 216mm;
+            --sheet-h: 279mm;
+            --safe-margin: 5mm;
+            --primary: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --waiting: #f1c40f;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-ui);
+            margin: 0;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 40px;
+        }
+
+        .toolbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .group {
+            display: flex;
+            gap: 5px;
+            border-right: 1px solid #444;
+            padding-right: 10px;
+            margin-right: 5px;
+        }
+
+        button,
+        select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-weight: 600;
+            background: #2c3e50;
+            color: white;
+        }
+
+        .btn-main {
+            background: var(--primary);
+            border: none;
+        }
+
+        .btn-pdf {
+            background: var(--success);
+            border: none;
+            margin-left: auto;
+        }
+
+        .btn-danger {
+            background: #c0392b;
+            border: none;
+        }
+
+        #viewport {
+            margin-top: 110px;
+            padding: 10px;
+        }
+
+        #printable-area {
+            width: var(--sheet-w);
+            height: var(--sheet-h);
+            background: white;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            box-sizing: border-box;
+            padding-left: var(--safe-margin);
+            padding-right: var(--safe-margin);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+
+        .cell {
+            border: 0.1mm solid #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            background: white;
+            outline: none;
+        }
+
+        .img-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .fit-contain img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .fit-stretch img {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+
+        .cell-controls {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: 0.2s;
+            z-index: 10;
+        }
+
+        .cell:hover .cell-controls {
+            opacity: 1;
+        }
+
+        .btn-action {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 24px;
+            border: 2px dashed white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+        }
+
+        /* Estado Amarillo */
+        .cell.waiting-paste .btn-action {
+            background: var(--waiting);
+            color: black;
+            border: 2px solid black;
+            animation: pulse 1.5s infinite;
+        }
+
+        .cell.waiting-paste .btn-action::after {
+            content: 'PEGAR';
+            font-size: 10px;
+            position: absolute;
+            bottom: 8px;
+            font-weight: bold;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .btn-main.waiting-paste-btn {
+            background: var(--waiting) !important;
+            color: black !important;
+            border: 2px solid black;
+            animation: pulse 1.5s infinite;
+        }
+
+        .btn-main.waiting-paste-btn::after {
+            content: ' (Ctrl+V)';
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .btn-delete-cell {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 26px;
+            height: 26px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        body.mode-multiple .has-image .btn-action {
+            display: none;
+        }
+
+        body.mode-multiple .has-image .btn-delete-cell {
+            display: flex;
+        }
+
+        body.mode-single .cell-controls {
+            display: none;
+        }
+
+        .processing {
+            cursor: wait !important;
+        }
+
+        .processing #viewport {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="mode-single">
+
+    <div class="toolbar">
+        <div class="group">
+            <select id="workMode">
+                <option value="single">1 Imagen para todo</option>
+                <option value="multiple">Múltiples imágenes</option>
+            </select>
+        </div>
+        <div class="group" id="singleControls">
+            <button id="btnMaster" onclick="handleMasterAction()" class="btn-main">Subir Maestra</button>
+            <input type="file" id="uploadMaster" accept="image/*" style="display:none">
+        </div>
+        <div class="group">
+            <button id="btnStretch" class="btn-main">Ajuste: Original</button>
+            <button id="btnRotate" class="btn-main">Rotar 90° ↻</button>
+        </div>
+        <div class="group">
+            <select id="paperSize">
+                <option value="letter">Carta</option>
+                <option value="legal">Oficio</option>
+            </select>
+            <button id="btnClear" class="btn-danger">Limpiar ×</button>
+        </div>
+        <button id="btnPDF" class="btn-pdf">💾 Descargar PDF</button>
+    </div>
+
+    <div id="viewport">
+        <div id="printable-area" class="fit-contain"></div>
+    </div>
+
+    <input type="file" id="hiddenCellInput" accept="image/*" style="display:none">
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        const grid = document.getElementById('printable-area');
+        const workMode = document.getElementById('workMode');
+
+        let currentGlobalImgData = null;
+        let isStretched = false;
+        let globalRotation = 0;
+        let cellImagesData = new Array(18).fill(null);
+        let activeCellIndex = null;
+
+        // Generar celdas
+        for (let i = 0; i < 18; i++) {
+            const div = document.createElement('div');
+            div.className = 'cell';
+            div.tabIndex = 0; // Permite que la celda reciba foco para el pegado
+            div.dataset.index = i;
+            div.innerHTML = `
+                <div class="img-container"></div>
+                <div class="cell-controls">
+                    <div class="btn-action">+</div>
+                    <button class="btn-delete-cell">×</button>
+                </div>`;
+
+            const btnAction = div.querySelector('.btn-action');
+            btnAction.onclick = (e) => {
+                e.stopPropagation();
+                handleCellAction(i, div);
+            };
+
+            div.querySelector('.btn-delete-cell').onclick = (e) => {
+                e.stopPropagation();
+                cellImagesData[i] = null;
+                renderMultiple();
+            };
+
+            grid.appendChild(div);
+        }
+
+        function handleCellAction(index, cellEl) {
+            if (workMode.value !== 'multiple') return;
+
+            if (!cellEl.classList.contains('waiting-paste')) {
+                // PRIMER CLICK: Activar modo pegado
+                document.querySelectorAll('.cell').forEach(c => c.classList.remove('waiting-paste'));
+                resetMasterButton(); // Reset master if a cell is clicked
+                cellEl.classList.add('waiting-paste');
+                activeCellIndex = index;
+                cellEl.focus(); // IMPORTANTE: Dar foco para capturar Ctrl+V
+            } else {
+                // SEGUNDO CLICK: Abrir buscador
+                activeCellIndex = index;
+                document.getElementById('hiddenCellInput').click();
+                cellEl.classList.remove('waiting-paste');
+            }
+        }
+
+        function handleMasterAction() {
+            const btn = document.getElementById('btnMaster');
+            if (!btn.classList.contains('waiting-paste-btn')) {
+                // PRIMER CLICK: Activar modo pegado
+                document.querySelectorAll('.cell').forEach(c => c.classList.remove('waiting-paste'));
+                btn.classList.add('waiting-paste-btn');
+                activeCellIndex = -1;
+            } else {
+                // SEGUNDO CLICK: Abrir buscador
+                document.getElementById('uploadMaster').click();
+                resetMasterButton();
+            }
+        }
+
+        function resetMasterButton() {
+            const btn = document.getElementById('btnMaster');
+            btn.classList.remove('waiting-paste-btn');
+        }
+
+        // EVENTO PEGAR (Mejorado)
+        window.addEventListener('paste', (e) => {
+            if (activeCellIndex === null) return;
+
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.type.indexOf("image") !== -1) {
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        processImageUpload(event.target.result, activeCellIndex);
+                        if (activeCellIndex === -1) {
+                            resetMasterButton();
+                        } else {
+                            document.querySelectorAll('.cell')[activeCellIndex].classList.remove('waiting-paste');
+                        }
+                        activeCellIndex = null;
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
+
+        // Buscador de archivos individual
+        document.getElementById('hiddenCellInput').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file && activeCellIndex !== null) {
+                const reader = new FileReader();
+                reader.onload = (event) => processImageUpload(event.target.result, activeCellIndex);
+                reader.readAsDataURL(file);
+            }
+            e.target.value = '';
+        };
+
+        async function processImageUpload(base64, index) {
+            document.body.classList.add('processing');
+            const rotated = await rotateImage(base64, globalRotation);
+
+            if (index === -1) {
+                currentGlobalImgData = base64;
+                renderSingle(rotated);
+            } else {
+                cellImagesData[index] = { originalSrc: base64, rotatedSrc: rotated };
+                renderMultiple();
+            }
+            document.body.classList.remove('processing');
+        }
+
+        function renderSingle(imgSrc) {
+            document.querySelectorAll('.cell').forEach(cell => {
+                const container = cell.querySelector('.img-container');
+                container.innerHTML = imgSrc ? `<img src="${imgSrc}">` : '';
+                imgSrc ? cell.classList.add('has-image') : cell.classList.remove('has-image');
+            });
+        }
+
+        function renderMultiple() {
+            document.querySelectorAll('.cell').forEach((cell, i) => {
+                const container = cell.querySelector('.img-container');
+                const data = cellImagesData[i];
+                container.innerHTML = data ? `<img src="${data.rotatedSrc}">` : '';
+                data ? cell.classList.add('has-image') : cell.classList.remove('has-image');
+            });
+        }
+
+        function rotateImage(base64, degrees) {
+            return new Promise((resolve) => {
+                if (degrees === 0) return resolve(base64);
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const rad = degrees * Math.PI / 180;
+                    const sin = Math.abs(Math.sin(rad)), cos = Math.abs(Math.cos(rad));
+                    const w = img.width * cos + img.height * sin;
+                    const h = img.width * sin + img.height * cos;
+                    canvas.width = w; canvas.height = h;
+                    ctx.translate(w / 2, h / 2);
+                    ctx.rotate(rad);
+                    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                    resolve(canvas.toDataURL('image/jpeg', 0.9));
+                };
+                img.src = base64;
+            });
+        }
+
+        // TOOLBAR EVENTS
+        workMode.onchange = () => {
+            document.body.className = `mode-${workMode.value}`;
+            document.getElementById('singleControls').style.display = workMode.value === 'single' ? 'flex' : 'none';
+            activeCellIndex = null;
+            resetMasterButton();
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('waiting-paste'));
+            if (workMode.value === 'single') renderSingle(currentGlobalImgData ? currentGlobalImgData : null);
+            else renderMultiple();
+        };
+
+        document.getElementById('uploadMaster').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => processImageUpload(ev.target.result, -1);
+                reader.readAsDataURL(file);
+            }
+        };
+
+        document.getElementById('btnRotate').onclick = async () => {
+            globalRotation = (globalRotation + 90) % 360;
+            document.body.classList.add('processing');
+            if (workMode.value === 'single' && currentGlobalImgData) {
+                renderSingle(await rotateImage(currentGlobalImgData, globalRotation));
+            } else {
+                for (let i = 0; i < 18; i++) {
+                    if (cellImagesData[i]) cellImagesData[i].rotatedSrc = await rotateImage(cellImagesData[i].originalSrc, globalRotation);
+                }
+                renderMultiple();
+            }
+            document.body.classList.remove('processing');
+        };
+
+        document.getElementById('btnStretch').onclick = () => {
+            isStretched = !isStretched;
+            document.getElementById('btnStretch').innerText = isStretched ? "Ajuste: Estirado" : "Ajuste: Original";
+            grid.className = isStretched ? 'fit-stretch' : 'fit-contain';
+        };
+
+        document.getElementById('paperSize').onchange = () => {
+            const isL = document.getElementById('paperSize').value === 'legal';
+            document.documentElement.style.setProperty('--sheet-h', isL ? '356mm' : '279mm');
+        };
+
+        document.getElementById('btnClear').onclick = () => {
+            currentGlobalImgData = null;
+            cellImagesData.fill(null);
+            renderSingle(null);
+            renderMultiple();
+        };
+
+        document.getElementById('btnPDF').onclick = async () => {
+            document.body.classList.add('processing');
+            const canvas = await html2canvas(grid, { scale: 2 });
+            const pdf = new jsPDF({
+                orientation: 'p',
+                unit: 'mm',
+                format: document.getElementById('paperSize').value
+            });
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+            pdf.save('hoja_18_copias.pdf');
+            document.body.classList.remove('processing');
+        };
+    </script>
+</body>
+
+</html>

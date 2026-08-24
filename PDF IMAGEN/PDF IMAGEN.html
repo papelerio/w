@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer - Resoluciones OPTIMIZADAS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 PDF Viewer - Resoluciones OPTIMIZADAS</h1>
+            <p>Thumbnails cuadrados + Vista previa + <strong>CALIDAD PROFESIONAL</strong></p>
+            <div class="resolution-control">
+                <label>Resolución de copia:</label>
+                <select id="resolutionMode" class="resolution-select">
+                    <option value="1.5">📱 Normal (1.5x) - 600x800px</option>
+                    <option value="2.5" selected>🖥️ Alta (2.5x) - 1200x1600px</option>
+                    <option value="4.0">🖨️ Premium (4x) - 2000x2600px</option>
+                    <option value="8.0">🎬 8K (8x) - 4000x5300px</option>
+                </select>
+                <div class="resolution-info" id="resolutionInfo">Alta (2.5x) - 1200x1600px</div>
+            </div>
+        </div>
+
+        <div class="upload-area">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📎</div>
+                <div class="upload-text">Arrastra tu PDF aquí</div>
+                <div class="upload-subtext">o haz clic para seleccionar un archivo</div>
+                <input type="file" id="fileInput" accept=".pdf">
+            </div>
+        </div>
+
+        <div class="loading" id="loading" style="display: none; padding: 40px; text-align: center;">
+            <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #4facfe; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <p>Procesando PDF... Creando imágenes en alta resolución</p>
+        </div>
+
+        <div class="status-message" id="statusMessage" style="display: none; padding: 20px; text-align: center; background: #e3f2fd; border-radius: 10px; margin: 20px;"></div>
+
+        <div class="pages-container" id="pagesContainer"></div>
+
+        <div class="controls">
+            <div class="page-info" id="pageInfo">Selecciona un PDF para comenzar</div>
+            <div class="thumbnail-control">
+                <label>Tamaño thumbnails:</label>
+                <input type="range" id="thumbnailSize" class="thumbnail-size" min="100" max="200" value="160">
+                <span id="sizeValue">160px</span>
+            </div>
+            <button id="btnDownloadZip" class="control-btn zip-btn" disabled>📦 Descargar imágenes en ZIP</button>
+            <div id="totalPages">0 páginas</div>
+        </div>
+    </div>
+
+    <!-- VISTA PREVIA -->
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-container">
+            <div class="preview-topbar">
+                <span class="preview-header" id="previewHeader">Página 1</span>
+                <div class="preview-topbar-actions">
+                    <button class="preview-topbar-btn" id="previewDownload" title="Descargar imagen">⬇️</button>
+                    <button class="preview-topbar-btn close" id="closePreview" title="Cerrar">✕</button>
+                </div>
+            </div>
+            <div class="preview-body">
+                <div class="preview-nav" id="prevBtn" title="Anterior">‹</div>
+                <img class="preview-image" id="previewImage" alt="Vista previa">
+                <div class="preview-nav" id="nextBtn" title="Siguiente">›</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE SELECCIÓN DE RANGO DE PÁGINAS -->
+    <div class="range-modal" id="rangeModal">
+        <div class="range-modal-content">
+            <h3>📑 Cargar páginas</h3>
+            <p>El archivo tiene <strong id="rangeMaxPages">0</strong> páginas.</p>
+            <p>Selecciona qué páginas deseas cargar:</p>
+            <input type="text" id="pageRangeInput" placeholder="Ej: 1-50, 60, 70-80">
+            <p class="range-examples">Ejemplos: <code>1-50</code> o <code>1,3,5-7,10</code> o déjalo vacío para todo.</p>
+            <div class="range-modal-actions">
+                <button id="btnLoadRange" class="range-btn primary">Cargar Selección</button>
+                <button id="btnLoadAll" class="range-btn secondary">Cargar Todo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE DESCARGA ZIP -->
+    <div class="range-modal" id="zipModal">
+        <div class="range-modal-content">
+            <h3>📦 Descargar ZIP</h3>
+            <p>Se generará un archivo comprimido con las <strong id="zipPagesCount">0</strong> páginas seleccionadas.</p>
+            
+            <div id="zipEstimating" class="zip-estimating">
+                <div class="spinner-small"></div>
+                <span>Calculando tamaño estimado de descarga...</span>
+            </div>
+            
+            <div id="zipOptions" class="zip-options" style="display: none;">
+                <p class="zip-section-title">Elige el formato de imagen:</p>
+                <div class="zip-radio-group">
+                    <label class="zip-radio-card">
+                        <input type="radio" name="zipFormat" value="png" checked>
+                        <div class="zip-card-content">
+                            <span class="zip-format-name">PNG</span>
+                            <span class="zip-format-desc">Alta calidad (sin pérdidas)</span>
+                            <span class="zip-format-size" id="pngSizeText">Calculando...</span>
+                        </div>
+                    </label>
+                    
+                    <label class="zip-radio-card">
+                        <input type="radio" name="zipFormat" value="jpeg">
+                        <div class="zip-card-content">
+                            <span class="zip-format-name">JPG</span>
+                            <span class="zip-format-desc">Optimizado (calidad 90%)</span>
+                            <span class="zip-format-size" id="jpgSizeText">Calculando...</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="range-modal-actions" style="margin-top: 20px;">
+                <button id="btnStartZipDownload" class="range-btn primary" disabled>Descargar ZIP</button>
+                <button id="btnCancelZip" class="range-btn secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENÚ CONTEXTUAL -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" id="copyImage">📋 Copiar imagen (SINGLE)</div>
+        <div class="context-menu-item" id="copyImageSmart">🧠 Copiar imagen (actual)</div>
+        <div class="context-menu-item" id="downloadImage">⬇️ Descargar imagen</div>
+        <div class="context-menu-item" id="copyAll">📚 Copiar todas las páginas</div>
+        <div class="context-menu-item" id="resolutionInfoMenu">ℹ️ Resolución: <span id="currentResMenu"></span></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="app.js" defer></script>
+</body>
+</html>

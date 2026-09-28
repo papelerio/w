@@ -364,6 +364,12 @@
     </div>
 
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
 
     <script>
         // Patrones de organización
@@ -381,11 +387,13 @@
                 positionsToRotate: [2, 3], // Las páginas en las posiciones 2 y 3 del patrón se rotan
                 rotationAngle: 180 // Grados de rotación
             }
-            // Puedes añadir configuraciones para otros modos aquí si es necesario
         };
 
         let currentMode = '4';
         let pdfDoc = null;
+        let pdfJsDoc = null;
+        let isFallbackMode = false;
+        let loadedArrayBuffer = null;
         let reorderedPdfDoc = null;
 
         // Elementos DOM
@@ -451,7 +459,7 @@
             if (mode === '16') elements.mode16Btn.classList.add('active');
 
             // Resetear si hay un PDF cargado
-            if (pdfDoc) {
+            if (pdfDoc || pdfJsDoc) {
                 const msg = mode === '2'
                     ? `✅ Modo 2 Hojas (tabla 2×N) seleccionado. El PDF se autoajustará al múltiplo de 4 más cercano.`
                     : `✅ Modo ${mode} hojas seleccionado. Listo para procesar.`;
@@ -462,6 +470,9 @@
         async function handleFileSelect(e) {
             // Resetear estado al seleccionar nuevo archivo
             pdfDoc = null;
+            pdfJsDoc = null;
+            isFallbackMode = false;
+            loadedArrayBuffer = null;
             reorderedPdfDoc = null;
             elements.downloadBtn.disabled = true;
             elements.processBtn.disabled = true;
@@ -476,16 +487,42 @@
             showStatus('⏳ Cargando PDF...', 'info');
 
             try {
-                const arrayBuffer = await file.arrayBuffer();
-                pdfDoc = await window.PDFLib.PDFDocument.load(arrayBuffer);
-                const pageCount = pdfDoc.getPageCount();
+                loadedArrayBuffer = await file.arrayBuffer();
 
-                const adjusted = Math.ceil(pageCount / 4) * 4;
-                const extraMsg = currentMode === '2' && adjusted > pageCount
-                    ? ` (se añadirán ${adjusted - pageCount} páginas en blanco para llegar a ${adjusted})`
-                    : '';
-                showStatus(`✅ PDF cargado: ${pageCount} páginas. Modo ${currentMode} hojas seleccionado.${extraMsg}`, 'success');
-                elements.processBtn.disabled = false;
+                // 1. Intentar cargar con pdf-lib (modo directo rápido)
+                try {
+                    pdfDoc = await window.PDFLib.PDFDocument.load(loadedArrayBuffer.slice(0));
+                    const count = pdfDoc.getPageCount();
+                    pdfDoc.getPages(); // Forzar verificación de lectura de catálogo
+                    
+                    const adjusted = Math.ceil(count / 4) * 4;
+                    const extraMsg = currentMode === '2' && adjusted > count
+                        ? ` (se añadirán ${adjusted - count} páginas en blanco para llegar a ${adjusted})`
+                        : '';
+                    showStatus(`✅ PDF cargado: ${count} páginas. Modo ${currentMode} hojas seleccionado.${extraMsg}`, 'success');
+                    elements.processBtn.disabled = false;
+                    return;
+                } catch (pdfLibErr) {
+                    console.warn('pdf-lib falló al leer el PDF directamente. Activando motor de compatibilidad PDF.js:', pdfLibErr);
+                }
+
+                // 2. Si pdf-lib falla por encriptación o referencias corruptas, usar PDF.js
+                if (window.pdfjsLib) {
+                    showStatus('⏳ PDF con marcas de encriptación o formato especial detectado. Usando motor de compatibilidad...', 'info');
+                    const loadingTask = window.pdfjsLib.getDocument({ data: loadedArrayBuffer.slice(0) });
+                    pdfJsDoc = await loadingTask.promise;
+                    const pageCount = pdfJsDoc.numPages;
+                    isFallbackMode = true;
+
+                    const adjusted = Math.ceil(pageCount / 4) * 4;
+                    const extraMsg = currentMode === '2' && adjusted > pageCount
+                        ? ` (se añadirán ${adjusted - pageCount} páginas en blanco para llegar a ${adjusted})`
+                        : '';
+                    showStatus(`✅ PDF cargado: ${pageCount} páginas (Modo de compatibilidad). Modo ${currentMode} hojas seleccionado.${extraMsg}`, 'success');
+                    elements.processBtn.disabled = false;
+                } else {
+                    throw new Error('No se pudo procesar la estructura del PDF.');
+                }
 
             } catch (error) {
                 showStatus('❌ Error al cargar el PDF: ' + error.message, 'error');
@@ -561,24 +598,31 @@
         }
 
         async function processPDF() {
-            if (!pdfDoc) return;
+            if (!pdfDoc && !pdfJsDoc) return;
 
             showStatus('⏳ Procesando PDF...', 'info');
             elements.processBtn.disabled = true;
 
             try {
-                const totalPages = pdfDoc.getPageCount();
+                const totalPages = isFallbackMode ? pdfJsDoc.numPages : pdfDoc.getPageCount();
                 const pattern = generatePattern(totalPages, currentMode);
 
                 // Obtener tamaño de la primera página para páginas en blanco
                 let pageWidth = 595, pageHeight = 842; // Tamaño A4 por defecto
-                try {
-                    const firstPage = pdfDoc.getPage(0);
-                    const { width, height } = firstPage.getSize();
-                    pageWidth = width;
-                    pageHeight = height;
-                } catch (e) {
-                    console.log('Usando tamaño A4 por defecto');
+                if (isFallbackMode) {
+                    const firstPage = await pdfJsDoc.getPage(1);
+                    const vp = firstPage.getViewport({ scale: 1.0 });
+                    pageWidth = vp.width;
+                    pageHeight = vp.height;
+                } else {
+                    try {
+                        const firstPage = pdfDoc.getPage(0);
+                        const { width, height } = firstPage.getSize();
+                        pageWidth = width;
+                        pageHeight = height;
+                    } catch (e) {
+                        console.log('Usando tamaño A4 por defecto');
+                    }
                 }
 
                 // Crear nuevo documento
@@ -598,8 +642,40 @@
                         reorderedPdfDoc.addPage([pageWidth, pageHeight]);
                         blankPages++;
                     } else {
-                        // Copiar la página del PDF original
-                        const [copiedPage] = await reorderedPdfDoc.copyPages(pdfDoc, [pageNum - 1]);
+                        let copiedPage;
+
+                        if (isFallbackMode) {
+                            showStatus(`⏳ Procesando página ${i + 1} de ${pattern.length} (Motor de compatibilidad)...`, 'info');
+                            const pdfPage = await pdfJsDoc.getPage(pageNum);
+                            const viewport = pdfPage.getViewport({ scale: 2.0 });
+
+                            const canvas = document.createElement('canvas');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            const ctx = canvas.getContext('2d');
+
+                            await pdfPage.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                            const imgBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+                            const imgBuffer = await imgBlob.arrayBuffer();
+                            const embeddedImg = await reorderedPdfDoc.embedJpg(imgBuffer);
+
+                            const origWidth = viewport.width / 2;
+                            const origHeight = viewport.height / 2;
+
+                            copiedPage = reorderedPdfDoc.addPage([origWidth, origHeight]);
+                            copiedPage.drawImage(embeddedImg, {
+                                x: 0,
+                                y: 0,
+                                width: origWidth,
+                                height: origHeight
+                            });
+                        } else {
+                            // Copiar la página del PDF original (Modo vectorial nativo)
+                            const [page] = await reorderedPdfDoc.copyPages(pdfDoc, [pageNum - 1]);
+                            copiedPage = page;
+                            reorderedPdfDoc.addPage(copiedPage);
+                        }
 
                         // Verificar si esta página debe ser rotada
                         if (shouldRotatePage(position, currentMode)) {
@@ -607,17 +683,19 @@
                             rotatedPages++;
                         }
 
-                        reorderedPdfDoc.addPage(copiedPage);
                         realPages++;
                     }
                 }
 
                 let statusMessage = `✅ Procesado exitoso (Modo ${currentMode} hojas)<br>` +
                     `📄 Original: ${totalPages} páginas → Final: ${pattern.length} páginas<br>` +
-                    `📑 ${realPages} reales + ${blankPages} en blanco`;
+                    `📑 ${realPages} reales + ${blankPages} en blank`;
 
                 if (rotatedPages > 0) {
                     statusMessage += `<br>🔄 ${rotatedPages} páginas rotadas 180°`;
+                }
+                if (isFallbackMode) {
+                    statusMessage += `<br>⚡ Procesado con motor de compatibilidad (PDF.js)`;
                 }
 
                 showStatus(statusMessage, 'success');
